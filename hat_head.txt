@@ -1,0 +1,730 @@
+part of 'main.dart';
+
+class HatAnaliziVeGerilimDusumuEkrani extends StatefulWidget {
+  final int initialTab;
+
+  const HatAnaliziVeGerilimDusumuEkrani({
+    super.key,
+    this.initialTab = 0,
+  });
+
+  @override
+  State<HatAnaliziVeGerilimDusumuEkrani> createState() =>
+      _HatAnaliziVeGerilimDusumuEkraniState();
+}
+
+class _HatAnaliziVeGerilimDusumuEkraniState
+    extends State<HatAnaliziVeGerilimDusumuEkrani> {
+  late int sekme;
+
+  @override
+  void initState() {
+    super.initState();
+    sekme = widget.initialTab.clamp(0, 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      title: 'Hat Analizi',
+      info: true,
+      onInfo: () => bilgiPopup(
+        context,
+        'Hat Analizi — Bilgi / Yardım',
+        '''Bu araçta önce AG/OG ve Trifaze/Monofaze seçilir. Daha sonra iletken tipi, döşeme şekli, kablo kesiti ve güç faktörü belirlenir.
+
+Hesap yöntemi:
+• Trifaze akım: I = P / (√3 × U × cosφ)
+• Monofaze akım: I = P / (U × cosφ)
+• Trifaze gerilim düşümü: ΔU = √3 × I × (R × cosφ + X × sinφ) × L
+• Monofaze gerilim düşümü: ΔU = 2 × I × R × L
+• Gerilim düşümü yüzdesi: ΔU% = 100 × ΔU / U
+
+Otomatik seçimde önce iletken tipine ve döşeme şekline uygun kapasite kontrol edilir, ardından izin verilen gerilim düşümü kontrol edilir. Veri tabanında empedans bilgisi bulunmayan bir iletken için gerilim düşümü değeri uydurulmaz.
+
+Referanslar:
+• TEDAŞ teknik şartnameleri
+• İlgili TS / EN / IEC kablo standartları
+• Üretici teknik katalogları
+• Dağıtım şirketi ve proje özel şartnameleri
+
+Sonuçlar ön mühendislik kontrolüdür. Kısa devre dayanımı, koruma koordinasyonu, sıcaklık/gruplama düzeltme katsayıları ve saha koşulları ayrıca doğrulanmalıdır.''',
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+            child: Row(
+              children: [
+                Expanded(child: _sekmeButton('Hat Analizi', 0)),
+                const SizedBox(width: 8),
+                Expanded(child: _sekmeButton('Gerilim Düşümü', 1)),
+              ],
+            ),
+          ),
+          Expanded(
+            child: sekme == 0
+                ? const _HatAnaliziTab()
+                : const _GerilimDusumuTab(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sekmeButton(String text, int index) {
+    final aktif = sekme == index;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => setState(() => sekme = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: aktif ? cIcon() : cCard(),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: cIcon().withValues(alpha: .35)),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: aktif ? Colors.white : cText(),
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HatAnaliziTab extends StatefulWidget {
+  const _HatAnaliziTab();
+
+  @override
+  State<_HatAnaliziTab> createState() => _HatAnaliziTabState();
+}
+
+class _HatAnaliziTabState extends State<_HatAnaliziTab> {
+  final _gucCtrl = TextEditingController();
+  final _mesafeCtrl = TextEditingController();
+
+  String gerilim = 'AG';
+  String fazTipi = 'Trifaze';
+  String iletkenTipi = 'NYY-Bakır Kablo';
+  String doseme = 'Havada';
+  String kabloKesiti = '';
+  bool otomatik = false;
+  double pf = 0.85;
+
+  double akim = 0;
+  double kapasite = 0;
+  double gerilimDusumu = double.nan;
+  double gerilimDusumuVolt = double.nan;
+  String durum = '';
+  String gerekce = '';
+  String onerilen = '-';
+  double onerilenKapasite = 0;
+  double onerilenDusum = double.nan;
+  bool hesaplandi = false;
+
+  static const double agVolt = 400;
+  static const double agMonoVolt = 230;
+  static const double ogVolt = 20.3 * 1000;
+  static const double izinVerilenDusum = 5.0;
+
+  final List<String> _agKabloTipleri = const [
+    'NYY-Bakır Kablo',
+    'NAYY-Aluminyum Kablo',
+    'Açık İletken',
+    'Alpek İletken',
+  ];
+
+  final List<String> _ogKabloTipleri = const [
+    'N2XSY Kablo',
+    'NA2XSY Kablo',
+    'Açık İletken',
+    'Alpek İletken',
+  ];
+
+  @override
+  void dispose() {
+    _gucCtrl.dispose();
+    _mesafeCtrl.dispose();
+    super.dispose();
+  }
+
+  List<String> get _tipler => gerilim == 'AG' ? _agKabloTipleri : _ogKabloTipleri;
+
+  List<String> get _kesitler {
+    if (iletkenTipi == 'NYY-Bakır Kablo') {
+      return _nyyKesitler(fazTipi);
+    }
+    if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
+      return _nayyKesitler(fazTipi);
+    }
+    if (iletkenTipi == 'N2XSY Kablo' || iletkenTipi == 'NA2XSY Kablo') {
+      return const [
+        '1x35/16 mm²',
+        '1x50/16 mm²',
+        '1x70/16 mm²',
+        '1x95/16 mm²',
+        '1x120/16 mm²',
+        '1x150/25 mm²',
+        '1x185/25 mm²',
+        '1x240/25 mm²',
+        '1x300/25 mm²',
+        '1x400/35 mm²',
+        '1x500/35 mm²',
+      ];
+    }
+    if (iletkenTipi == 'Açık İletken') {
+      return gerilim == 'AG'
+          ? const [
+              'ROSE (R)',
+              'LILIY (L)',
+              'PANSY (P)',
+              'POPY (Po)',
+              'ASTER (A)',
+              'PHLOX (Ph)',
+              'OXLIP (O)',
+            ]
+          : const [
+              '3 AWG - SWALLOW',
+              '1/0 AWG - RAVEN',
+              '3/0 AWG - PİGEON',
+              '266.8 MCM - PATRİDGE',
+              '477 MCM - HAWK',
+            ];
+    }
+    if (iletkenTipi == 'Alpek İletken') {
+      return const [
+        '35 mm² ALPEK',
+        '50 mm² ALPEK',
+        '70 mm² ALPEK',
+        '95 mm² ALPEK',
+        '120 mm² ALPEK',
+      ];
+    }
+    return const [];
+  }
+
+  List<String> _nyyKesitler(String faz) {
+    if (faz == 'Monofaze') {
+      return const [
+        '1x1,5 mm²',
+        '1x2,5 mm²',
+        '1x4 mm²',
+        '1x6 mm²',
+        '1x10 mm²',
+        '1x16 mm²',
+        '1x25 mm²',
+        '1x35 mm²',
+        '1x50 mm²',
+        '1x70 mm²',
+        '1x95 mm²',
+        '1x120 mm²',
+        '1x150 mm²',
+        '1x185 mm²',
+        '1x240 mm²',
+        '2x1,5 mm²',
+        '2x2,5 mm²',
+        '2x4 mm²',
+        '2x6 mm²',
+        '2x10 mm²',
+        '2x16 mm²',
+        '2x25 mm²',
+        '2x35 mm²',
+        '2x50 mm²',
+        '2x70 mm²',
+        '2x95 mm²',
+        '2x120 mm²',
+        '2x150 mm²',
+        '2x185 mm²',
+        '2x240 mm²',
+      ];
+    }
+    return const [
+      '3x1,5 mm²',
+      '3x2,5 mm²',
+      '3x4 mm²',
+      '3x6 mm²',
+      '3x10 mm²',
+      '3x16 mm²',
+      '3x25 mm²',
+      '3x35 mm²',
+      '3x50 mm²',
+      '3x70 mm²',
+      '3x95 mm²',
+      '3x120 mm²',
+      '3x150 mm²',
+      '3x185 mm²',
+      '3x240 mm²',
+      '3x10+6 mm²',
+      '3x16+10 mm²',
+      '3x25+16 mm²',
+      '3x35+16 mm²',
+      '3x50+25 mm²',
+      '3x70+35 mm²',
+      '3x95+50 mm²',
+      '3x120+70 mm²',
+      '3x150+70 mm²',
+      '3x185+95 mm²',
+      '3x240+120 mm²',
+      '4x1,5 mm²',
+      '4x2,5 mm²',
+      '4x4 mm²',
+      '4x6 mm²',
+      '4x10 mm²',
+      '4x16 mm²',
+      '4x25 mm²',
+      '4x35 mm²',
+      '4x50 mm²',
+      '4x70 mm²',
+      '4x95 mm²',
+      '4x120 mm²',
+      '4x150 mm²',
+      '4x185 mm²',
+      '4x240 mm²',
+      '5x1,5 mm²',
+      '5x2,5 mm²',
+      '5x4 mm²',
+      '5x6 mm²',
+      '5x10 mm²',
+      '5x16 mm²',
+      '5x25 mm²',
+      '5x35 mm²',
+      '5x50 mm²',
+      '5x70 mm²',
+      '5x95 mm²',
+      '5x120 mm²',
+      '5x150 mm²',
+      '5x185 mm²',
+      '5x240 mm²',
+    ];
+  }
+
+  List<String> _nayyKesitler(String faz) {
+    if (faz == 'Monofaze') {
+      return const [
+        '1x10 mm²',
+        '1x16 mm²',
+        '1x25 mm²',
+        '1x35 mm²',
+        '1x50 mm²',
+        '1x70 mm²',
+        '1x95 mm²',
+        '1x120 mm²',
+        '1x150 mm²',
+        '1x185 mm²',
+        '1x240 mm²',
+        '2x10 mm²',
+        '2x16 mm²',
+        '2x25 mm²',
+        '2x35 mm²',
+        '2x50 mm²',
+        '2x70 mm²',
+        '2x95 mm²',
+        '2x120 mm²',
+        '2x150 mm²',
+        '2x185 mm²',
+        '2x240 mm²',
+      ];
+    }
+    return const [
+      '3x25 mm²',
+      '3x35 mm²',
+      '3x50 mm²',
+      '3x70 mm²',
+      '3x95 mm²',
+      '3x120 mm²',
+      '3x150 mm²',
+      '3x185 mm²',
+      '3x240 mm²',
+      '3x25+16 mm²',
+      '3x35+16 mm²',
+      '3x50+25 mm²',
+      '3x70+35 mm²',
+      '3x95+50 mm²',
+      '3x120+70 mm²',
+      '3x150+70 mm²',
+      '3x185+95 mm²',
+      '3x240+120 mm²',
+      '4x25 mm²',
+      '4x35 mm²',
+      '4x50 mm²',
+      '4x70 mm²',
+      '4x95 mm²',
+      '4x120 mm²',
+      '4x150 mm²',
+      '4x185 mm²',
+      '4x240 mm²',
+      '5x25 mm²',
+      '5x35 mm²',
+      '5x50 mm²',
+      '5x70 mm²',
+      '5x95 mm²',
+      '5x120 mm²',
+      '5x150 mm²',
+      '5x185 mm²',
+      '5x240 mm²',
+    ];
+  }
+
+  void _setGerilim(String value) {
+    setState(() {
+      gerilim = value;
+      iletkenTipi = value == 'AG' ? 'NYY-Bakır Kablo' : 'N2XSY Kablo';
+      kabloKesiti = '';
+      hesaplandi = false;
+    });
+  }
+
+  void _setFaz(String value) {
+    setState(() {
+      fazTipi = value;
+      kabloKesiti = '';
+      hesaplandi = false;
+    });
+  }
+
+  void _setIletken(String value) {
+    setState(() {
+      iletkenTipi = value;
+      kabloKesiti = '';
+      hesaplandi = false;
+    });
+  }
+
+  double _sayisalKesit(String value) {
+    final normalized = value.replaceAll(',', '.');
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(normalized);
+    return match == null ? 0 : double.tryParse(match.group(1)!) ?? 0;
+  }
+
+  int _paralelSayisi(String value) {
+    final match = RegExp(r'^(\d+)x\(').firstMatch(value);
+    return match == null ? 1 : int.tryParse(match.group(1)!) ?? 1;
+  }
+
+  double? _nayyHava(String secim) {
+    final s = _sayisalKesit(secim);
+    const map = <String, double>{
+      '10': 45,
+      '16': 60,
+      '25': 87,
+      '35': 107,
+      '50': 131,
+      '70': 166,
+      '95': 205,
+      '120': 239,
+      '150': 273,
+      '185': 317,
+      '240': 378,
+    };
+    return map[s.toString()];
+  }
+
+  double? _nayyToprak(String secim) {
+    final s = _sayisalKesit(secim);
+    const map = <String, double>{
+      '10': 55,
+      '16': 75,
+      '25': 106,
+      '35': 127,
+      '50': 151,
+      '70': 185,
+      '95': 222,
+      '120': 253,
+      '150': 284,
+      '185': 322,
+      '240': 375,
+    };
+    return map[s.toString()];
+  }
+
+  double? _nyyHava(String secim) {
+    final s = _sayisalKesit(secim);
+    final data = <String, double>{
+      '1.5': 20,
+      '2.5': 27,
+      '4': 37,
+      '6': 47,
+      '10': 64,
+      '16': 84,
+      '25': 114,
+      '35': 139,
+      '50': 169,
+      '70': 213,
+      '95': 264,
+      '120': 307,
+      '150': 352,
+      '185': 406,
+      '240': 483,
+    };
+    return data[s.toString()];
+  }
+
+  double? _nyyToprak(String secim) {
+    final s = _sayisalKesit(secim);
+    final data = <String, double>{
+      '1.5': 29,
+      '2.5': 38,
+      '4': 50,
+      '6': 62,
+      '10': 83,
+      '16': 107,
+      '25': 138,
+      '35': 164,
+      '50': 195,
+      '70': 238,
+      '95': 286,
+      '120': 325,
+      '150': 365,
+      '185': 413,
+      '240': 479,
+    };
+    return data[s.toString()];
+  }
+
+  double? _acikIletkenAkimi(String secim, {required bool worstCase}) {
+    final map = gerilim == 'AG'
+        ? <String, double>{
+            'ROSE (R)': 110,
+            'LILIY (L)': 125,
+            'PANSY (P)': 165,
+            'POPY (Po)': 193,
+            'ASTER (A)': 225,
+            'PHLOX (Ph)': 262,
+            'OXLIP (O)': 306,
+          }
+        : <String, double>{
+            '3 AWG - SWALLOW': 120,
+            '1/0 AWG - RAVEN': 195,
+            '3/0 AWG - PİGEON': 275,
+            '266.8 MCM - PATRİDGE': 345,
+            '477 MCM - HAWK': 540,
+          };
+    // I sütunu = en düşük kapasite, tasarım için konservatif varsayılan.
+    return map[secim];
+  }
+
+  double? _acikIletkenR(String secim) {
+    final map = gerilim == 'AG'
+        ? <String, double>{
+            'ROSE (R)': 1.354,
+            'LILIY (L)': 1.074,
+            'PANSY (P)': .6752,
+            'POPY (Po)': .5351,
+            'ASTER (A)': .4245,
+            'PHLOX (Ph)': .3366,
+            'OXLIP (O)': .2671,
+          }
+        : <String, double>{
+            '3 AWG - SWALLOW': 1.0742,
+            '1/0 AWG - RAVEN': .5362,
+            '3/0 AWG - PİGEON': .3366,
+            '266.8 MCM - PATRİDGE': .214,
+            '477 MCM - HAWK': .1194,
+          };
+    return map[secim];
+  }
+
+  double? _kapasite(String secim) {
+    if (iletkenTipi == 'NYY-Bakır Kablo') {
+      final base = fazTipi == 'Monofaze' ? _nyyHava(secim) : _nyyHava(secim);
+      return base == null ? null : base * _paralelSayisi(secim);
+    }
+    if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
+      final base = _nayyHava(secim);
+      return base == null ? null : base * _paralelSayisi(secim);
+    }
+    if (iletkenTipi == 'Açık İletken') {
+      return _acikIletkenAkimi(secim, worstCase: true);
+    }
+    // ALPEK için merkezi teknik tablo henüz bağlanmadığı için sayı uydurulmaz.
+    return null;
+  }
+
+  double? _empedansR(String secim) {
+    if (iletkenTipi == 'NYY-Bakır Kablo') {
+      final s = _sayisalKesit(secim);
+      const r = <String, double>{
+        '1.5': 14.5,
+        '2.5': 8.87,
+        '4': 5.52,
+        '6': 3.69,
+        '10': 2.19,
+        '16': 1.38,
+        '25': .870,
+        '35': .627,
+        '50': .463,
+        '70': .321,
+        '95': .232,
+        '120': .184,
+        '150': .150,
+        '185': .121,
+        '240': .0926,
+      };
+      final v = r[s.toString()];
+      return v == null ? null : v / 1000;
+    }
+    if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
+      // Kullanıcının güncel NAYY tablosunda R/X alanı bu araca bağlanmadı;
+      // gerilim düşümü burada tahmin edilmez.
+      return null;
+    }
+    if (iletkenTipi == 'Açık İletken') {
+      final r = _acikIletkenR(secim);
+      return r == null ? null : r / 1000;
+    }
+    return null;
+  }
+
+  double? _gerilimDusumuYuzde({
+    required double current,
+    required double distanceM,
+    required double voltage,
+    required bool threePhase,
+    required String secim,
+  }) {
+    final r = _empedansR(secim);
+    if (r == null || r <= 0) return null;
+
+    final x = 0.0;
+    final sinPhi = sqrt(max(0.0, 1 - pf * pf));
+
+    final du = threePhase
+        ? sqrt(3) *
+            current *
+            ((r * pf) + (x * sinPhi)) *
+            distanceM
+        : 2 * current * r * distanceM;
+
+    return du / voltage * 100;
+  }
+
+  List<String> _adaylar() {
+    final source = _kesitler.where((e) => e.isNotEmpty).toList();
+    return source;
+  }
+
+  String _otomatikSec(double current, double distanceM) {
+    if (iletkenTipi == 'Alpek İletken') {
+      return '-';
+    }
+
+    for (final candidate in _adaylar()) {
+      final cap = _kapasite(candidate);
+      if (cap == null || cap < current) continue;
+
+      final du = _gerilimDusumuYuzde(
+        current: current,
+        distanceM: distanceM,
+        voltage: gerilim == 'OG' ? ogVolt : (fazTipi == 'Trifaze' ? agVolt : agMonoVolt),
+        threePhase: fazTipi == 'Trifaze',
+        secim: candidate,
+      );
+
+      // Empedans verisi yoksa otomatik seçimde gerilim düşümü kriteri
+      // uydurulmaz; bu durumda yalnızca kapasiteye göre seçim yapılmaz.
+      if (du == null) continue;
+      if (du <= izinVerilenDusum) return candidate;
+    }
+
+    return '-';
+  }
+
+  void hesapla() {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final p = double.tryParse(_gucCtrl.text.replaceAll(',', '.')) ?? 0;
+    final l = double.tryParse(_mesafeCtrl.text.replaceAll(',', '.')) ?? 0;
+
+    if (p <= 0 || l <= 0 || pf <= 0) {
+      setState(() => hesaplandi = false);
+      return;
+    }
+
+    final three = fazTipi == 'Trifaze';
+    final u = gerilim == 'OG' ? ogVolt : (three ? agVolt : agMonoVolt);
+    final i = three
+        ? p * 1000 / (sqrt(3) * u * pf)
+        : p * 1000 / (u * pf);
+
+    String secim = kabloKesiti;
+    if (otomatik) {
+      secim = _otomatikSec(i, l);
+    }
+
+    if (secim.isEmpty || secim == '-') {
+      setState(() {
+        akim = i;
+        kapasite = 0;
+        gerilimDusumu = double.nan;
+        gerilimDusumuVolt = double.nan;
+        durum = 'UYGUN SEÇİM BULUNAMADI';
+        onerilen = '-';
+        gerekce = iletkenTipi == 'Alpek İletken'
+            ? 'ALPEK için merkezi akım/empedans tablosu bu araca henüz bağlanmadığı için sayısal sonuç uydurulmadı.'
+            : 'Seçilen iletken tipi için hem akım taşıma hem de doğrulanabilir gerilim düşümü kriterlerini birlikte sağlayan bir seçim bulunamadı.';
+        hesaplandi = true;
+      });
+      return;
+    }
+
+    final cap = _kapasite(secim) ?? 0;
+    final du = _gerilimDusumuYuzde(
+      current: i,
+      distanceM: l,
+      voltage: u,
+      threePhase: three,
+      secim: secim,
+    );
+
+    final capOk = cap >= i;
+    final duOk = du != null && du <= izinVerilenDusum;
+    final uygun = capOk && duOk;
+
+    String text;
+    if (uygun) {
+      text =
+          'Seçilen iletken, verilen güç/mesafe ve referans döşeme koşulunda akım taşıma ve gerilim düşümü açısından ön kontrolden geçiyor.';
+    } else {
+      final nedenler = <String>[];
+      if (!capOk) {
+        nedenler.add(
+          'Akım ${i.toStringAsFixed(1)} A, referans kapasite ${cap.toStringAsFixed(1)} A',
+        );
+      }
+      if (du == null) {
+        nedenler.add('Bu iletken için doğrulanmış R/X verisi bulunmadığından gerilim düşümü hesaplanmadı');
+      } else if (!duOk) {
+        nedenler.add(
+          'gerilim düşümü %${du.toStringAsFixed(2)} ile %$izinVerilenDusum sınırını aşıyor',
+        );
+      }
+      text = nedenler.join('. ');
+    }
+
+    final next = _otomatikSec(i, l);
+
+    setState(() {
+      akim = i;
+      kapasite = cap;
+      gerilimDusumu = du ?? double.nan;
+      gerilimDusumuVolt = du == null ? double.nan : du / 100 * u;
+      durum = uygun ? 'UYGUN' : 'UYGUN DEĞİL';
+      onerilen = next;
+      onerilenKapasite = next == '-' ? 0 : (_kapasite(next) ?? 0);
+      onerilenDusum = next == '-'
+          ? double.nan
+          : (_gerilimDusumuYuzde(
+                current: i,
+                distanceM: l,
+                voltage: u,
+                threePhase: three,
+                secim: next,
+              ) ??
+              double.nan);
+      gerekce = text;
