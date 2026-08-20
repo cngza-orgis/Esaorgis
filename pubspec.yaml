@@ -2,7 +2,7 @@ name: esa
 description: Elektrik saha hesapları, kablo, koruma, pano, motor, GES ve saha yardımcı araçları.
 publish_to: 'none'
 
-version: 2.4.2+242
+version: 2.4.3+243
 
 environment:
   sdk: ^3.0.0
