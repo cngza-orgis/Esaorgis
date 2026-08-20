@@ -28,12 +28,12 @@ part 'dagitim_enh.dart';
 part 'yeralti_kablo.dart';
 part 'alpek_iletken.dart';
 part 'acik_iletken.dart';
+part 'teknik_bilgiler.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const SahaAsistaniApp());
 }
-
 
 class SahaAsistaniApp extends StatelessWidget {
   const SahaAsistaniApp({super.key});
@@ -45,7 +45,8 @@ class SahaAsistaniApp extends StatelessWidget {
         final light = ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: const Color(0xFFF4F7FB),
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0B5CC9), brightness: Brightness.light),
+          colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0B5CC9), brightness: Brightness.light),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF073B7A),
             foregroundColor: Colors.white,
@@ -75,15 +76,18 @@ class SahaAsistaniApp extends StatelessWidget {
               backgroundColor: const Color(0xFF18A957),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(42),
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-              textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8))),
+              textStyle:
+                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
           ),
         );
         final dark = ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: const Color(0xFF101923),
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2C9BEF), brightness: Brightness.dark),
+          colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF2C9BEF), brightness: Brightness.dark),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF061F40),
             foregroundColor: Colors.white,
@@ -101,22 +105,24 @@ class SahaAsistaniApp extends StatelessWidget {
             color: const Color(0xFF182431),
             elevation: 0,
             margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12)), side: BorderSide(color: Color(0xFF304355))),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                side: BorderSide(color: Color(0xFF304355))),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF18A957),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(42),
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8))),
             ),
           ),
         );
         // Uygulamanın üst durum çubuğu ve alt sistem/navigasyon alanı,
         // uygulamanın koyu mavi kurumsal çerçevesiyle aynı renkte tutulur.
-        final systemBarColor = isDark
-            ? const Color(0xFF061F40)
-            : const Color(0xFF073B7A);
+        final systemBarColor =
+            isDark ? const Color(0xFF061F40) : const Color(0xFF073B7A);
         final systemUiStyle = SystemUiOverlayStyle(
           statusBarColor: systemBarColor,
           systemNavigationBarColor: systemBarColor,

@@ -1,6 +1,14 @@
 part of 'main.dart';
 
-void bilgiPopup(BuildContext context, String baslik, String metin) {
+// ============================================================
+// ORTAK BİLGİ POPUP
+// ============================================================
+
+void bilgiPopup(
+  BuildContext context,
+  String baslik,
+  String metin,
+) {
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -51,20 +59,33 @@ void bilgiPopup(BuildContext context, String baslik, String metin) {
   );
 }
 
+// ============================================================
+// HAKKINDA / YASAL UYARI
+// ============================================================
+
 void _hakkindaPopup(BuildContext context) {
   bilgiPopup(
     context,
     'Hakkında / Yasal Uyarı',
-    'E.S.A. (Elektrik Saha Asistanı), sahadaki elektrik fen adamlarına hızlı bir referans ve pratik bir asistan olması amacıyla tasarlanmıştır.\n\n'
-            'Sorumluluk Reddi (Uyarı): Bu uygulamadaki hesaplamalar teknik referans ve ön değerlendirme amacı taşır. Güncel standart, yönetmelik, dağıtım şirketi şartnamesi, proje koşulları, üretici verileri, saha ölçümleri ve yetkili kişi kontrolleri ayrıca değerlendirilmelidir. Nihai projelendirme, uygulama, ölçüm, kabul ve güvenlik kontrolleri kullanıcının mesleki sorumluluğundadır. Teknik olarak uygun olmayan seçimlerde gösterilen teorik hesaplamalar sahada uygulanabilirlik anlamına gelmez.\n\n'
-            'Tüm araçlar çevrimdışı çalışır; internet bağlantısı veya kullanıcı izni gerektirmez.\n\n'
+    'E.S.A. (Elektrik Saha Asistanı), sahadaki elektrik fen adamlarına '
+            'hızlı bir referans ve pratik bir asistan olması amacıyla tasarlanmıştır.\n\n'
+            'Sorumluluk Reddi (Uyarı): Bu uygulamadaki hesaplamalar teknik '
+            'referans ve ön değerlendirme amacı taşır. Güncel standart, '
+            'yönetmelik, dağıtım şirketi şartnamesi, proje koşulları, üretici '
+            'verileri, saha ölçümleri ve yetkili kişi kontrolleri ayrıca '
+            'değerlendirilmelidir. Nihai projelendirme, uygulama, ölçüm, kabul '
+            've güvenlik kontrolleri kullanıcının mesleki sorumluluğundadır. '
+            'Teknik olarak uygun olmayan seçimlerde gösterilen teorik '
+            'hesaplamalar sahada uygulanabilirlik anlamına gelmez.\n\n'
+            'Tüm araçlar çevrimdışı çalışır; internet bağlantısı veya kullanıcı '
+            'izni gerektirmez.\n\n'
             'Sürüm 2.4.2\n\n' +
         teknikKaynakNotu,
   );
 }
 
 // ============================================================
-// ANA MENÜ
+// ANA MENÜ ARAÇ MODELİ
 // ============================================================
 
 class _Arac {
@@ -79,18 +100,29 @@ class _Arac {
   );
 }
 
+// ============================================================
+// ANA MENÜ
+// ============================================================
+
 class AnaMenu extends StatefulWidget {
-  const AnaMenu({super.key});
+  const AnaMenu({
+    super.key,
+  });
 
   @override
   State<AnaMenu> createState() => _AnaMenuState();
 }
 
 class _AnaMenuState extends State<AnaMenu> {
-
   static const Color lacivert = Color(0xFF073B7A);
   static const Color koyuLacivert = Color(0xFF061F40);
-  static const Color mavi = Color(0xFF0B5CC9);
+
+  // ==========================================================
+  // SAHA NOTLARI
+  //
+  // Buradaki havuz ilerleyen aşamada yaklaşık 250 mesleki,
+  // teknik ve İSG mesajına genişletilecektir.
+  // ==========================================================
 
   static const List<String> _sahaNotlari = [
     'Hiçbir iş, insan hayatından daha önemli ve acil değildir.',
@@ -120,6 +152,14 @@ class _AnaMenuState extends State<AnaMenu> {
     'Kullanılmayan bir devreyi enerjisiz bırakmak yeterli değildir; devrenin yanlışlıkla tekrar enerjilendirilmesini de önle.',
     'Kişisel koruyucu donanım bir formalite değil, son savunma katmanıdır; önce tehlikeyi ortadan kaldır, sonra koruyucu önlemleri uygula.',
     'Sahada şüpheli bir durumda durmak zaman kaybı değil, doğru mühendislik davranışıdır.',
+    'Bir akım trafosunda yalnızca oranı kontrol etmek yeterli değildir; sınıf, burden, çekirdek görevi ve kısa devre dayanımı birlikte değerlendirilmelidir.',
+    'Ölçü ve koruma çekirdeklerinin görevlerini birbirinden ayırmak, OG ölçü sistemlerinde güvenilirliğin temel adımlarındandır.',
+    'Bir devrede gerilim düşümü uygun olsa bile akım taşıma kapasitesi ayrıca kontrol edilmelidir.',
+    'Kablo seçimi; kesit, malzeme, döşeme şekli, ortam sıcaklığı ve gruplanma koşulları birlikte değerlendirilerek yapılmalıdır.',
+    'Pano içinde farklı devrelerin etiketlerini birbirine benzetmek bakım sırasında gereksiz risk oluşturur.',
+    'Kısa devre seviyesi bilinmeyen bir sistemde koruma ekipmanı seçimini yalnızca anma akımına göre yapmak doğru değildir.',
+    'Bir ölçü aletinin doğru çalıştığını varsaymak yerine gerektiğinde uygun yöntemle kontrol etmek güvenilir ölçümün parçasıdır.',
+    'Elektrik işlerinde en iyi hız, güvenlikten taviz vermeden yapılan hızdır.',
   ];
 
   int _sahaNotuIndex = 0;
@@ -127,10 +167,18 @@ class _AnaMenuState extends State<AnaMenu> {
   @override
   void initState() {
     super.initState();
-    _sahaNotuIndex = DateTime.now().millisecondsSinceEpoch % _sahaNotlari.length;
+
+    _sahaNotuIndex =
+        DateTime.now().millisecondsSinceEpoch % _sahaNotlari.length;
   }
 
   String get _sahaNotu => _sahaNotlari[_sahaNotuIndex];
+
+  // ==========================================================
+  // ANA ARAÇLAR
+  //
+  // 8 ana grup + 9. hücrede Teknik Bilgiler
+  // ==========================================================
 
   static final List<_Arac> araclar = [
     const _Arac(
@@ -175,6 +223,10 @@ class _AnaMenuState extends State<AnaMenu> {
     ),
   ];
 
+  // ==========================================================
+  // BUILD
+  // ==========================================================
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -187,58 +239,100 @@ class _AnaMenuState extends State<AnaMenu> {
           body: SafeArea(
             child: Column(
               children: [
-                _ustBar(context, isDark),
+                _ustBar(
+                  context,
+                  isDark,
+                ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                      10,
+                      8,
+                      10,
+                      8,
+                    ),
                     child: Column(
                       children: [
+                        // ==================================================
+                        // 3 x 3 ANA IZGARA
+                        //
+                        // 1-8 : Ana araç grupları
+                        // 9   : Teknik Bilgiler
+                        // ==================================================
+
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: 9,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             crossAxisSpacing: 8,
                             mainAxisSpacing: 8,
                             childAspectRatio: 1.08,
                           ),
-                          itemBuilder: (context, index) {
+                          itemBuilder: (
+                            context,
+                            index,
+                          ) {
                             if (index < araclar.length) {
                               final arac = araclar[index];
+
                               return _AracKarti(
                                 arac: arac,
                                 isDark: isDark,
                                 onTap: () async {
                                   await Navigator.push(
                                     context,
-                                    materialRoute(arac.page),
+                                    materialRoute(
+                                      arac.page,
+                                    ),
                                   );
+
                                   if (!mounted) return;
+
                                   setState(() {
-                                    _sahaNotuIndex = (_sahaNotuIndex + 1) % _sahaNotlari.length;
+                                    _sahaNotuIndex = (_sahaNotuIndex + 1) %
+                                        _sahaNotlari.length;
                                   });
                                 },
                               );
                             }
 
-                            // 3. sütun / 3. satır: Teknik Bilgiler
+                            // ==================================================
+                            // 3. SÜTUN / 3. SATIR
+                            // TEKNİK BİLGİLER
+                            // ==================================================
+
                             return _TeknikBilgilerKarti(
                               isDark: isDark,
                               onTap: () async {
                                 await Navigator.push(
                                   context,
-                                  materialRoute(const TeknikBilgilerEkrani()),
+                                  materialRoute(
+                                    const TeknikBilgilerEkrani(),
+                                  ),
                                 );
+
                                 if (!mounted) return;
+
                                 setState(() {
-                                  _sahaNotuIndex = (_sahaNotuIndex + 1) % _sahaNotlari.length;
+                                  _sahaNotuIndex = (_sahaNotuIndex + 1) %
+                                      _sahaNotlari.length;
                                 });
                               },
                             );
                           },
                         ),
-                        const SizedBox(height: 12),
+
+                        const SizedBox(
+                          height: 12,
+                        ),
+
+                        // ==================================================
+                        // SAHA NOTU / TEKNİK MESAJ
+                        // ==================================================
+
                         _SahaNotuCard(
                           isDark: isDark,
                           text: _sahaNotu,
@@ -247,7 +341,15 @@ class _AnaMenuState extends State<AnaMenu> {
                     ),
                   ),
                 ),
-                _altBilgi(context, isDark),
+
+                // ==========================================================
+                // ALT BİLGİ / HAKKINDA
+                // ==========================================================
+
+                _altBilgi(
+                  context,
+                  isDark,
+                ),
               ],
             ),
           ),
@@ -255,6 +357,10 @@ class _AnaMenuState extends State<AnaMenu> {
       },
     );
   }
+
+  // ==========================================================
+  // ÜST BAR
+  // ==========================================================
 
   Widget _ustBar(
     BuildContext context,
@@ -271,7 +377,10 @@ class _AnaMenuState extends State<AnaMenu> {
           BoxShadow(
             color: Color(0x22000000),
             blurRadius: 8,
-            offset: Offset(0, 3),
+            offset: Offset(
+              0,
+              3,
+            ),
           ),
         ],
       ),
@@ -305,6 +414,10 @@ class _AnaMenuState extends State<AnaMenu> {
     );
   }
 
+  // ==========================================================
+  // ALT BİLGİ
+  // ==========================================================
+
   Widget _altBilgi(
     BuildContext context,
     bool isDark,
@@ -336,7 +449,9 @@ class _AnaMenuState extends State<AnaMenu> {
                 size: 26,
               ),
             ),
-            const SizedBox(width: 11),
+            const SizedBox(
+              width: 11,
+            ),
             const Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -352,7 +467,9 @@ class _AnaMenuState extends State<AnaMenu> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  SizedBox(
+                    height: 2,
+                  ),
                   Text(
                     'Sürüm 2.4.2',
                     style: TextStyle(
@@ -376,111 +493,66 @@ class _AnaMenuState extends State<AnaMenu> {
   }
 }
 
-
 // ============================================================
-// TEKNİK BİLGİLER KÜTÜPHANESİ
+// TEKNİK BİLGİLER KARTI
+//
+// Ekranın 3 x 3 gridindeki 9. kart.
+// TeknikBilgilerEkrani artık teknik_bilgiler.dart dosyasından
+// gelir. Burada tekrar tanımlanmaz.
 // ============================================================
-
-class _TeknikKonu {
-  final String baslik;
-  final String kategori;
-  final String metin;
-  const _TeknikKonu(this.baslik, this.kategori, this.metin);
-}
-
-class TeknikBilgilerEkrani extends StatefulWidget {
-  const TeknikBilgilerEkrani({super.key});
-  @override
-  State<TeknikBilgilerEkrani> createState() => _TeknikBilgilerEkraniState();
-}
-
-class _TeknikBilgilerEkraniState extends State<TeknikBilgilerEkrani> {
-  final arama = TextEditingController();
-  String filtre = '';
-
-  static const konular = <_TeknikKonu>[
-    _TeknikKonu('Güç, Akım ve Gerilim', 'Elektrik Temelleri', 'Güç, akım ve gerilim arasındaki temel ilişkiler; monofaze ve trifaze sistemlerde kullanılan temel hesap yaklaşımı.'),
-    _TeknikKonu('Güç Faktörü (cos φ)', 'Elektrik Temelleri', 'Güç faktörü aktif, reaktif ve görünür güç ilişkisini ifade eder. ESA ön kabullerinde aksi belirtilmedikçe varsayılan cos φ değeri 0,80 olarak kullanılır.'),
-    _TeknikKonu('Sözleşme Gücü ve Talep Gücü', 'Elektrik Temelleri', 'Sözleşme gücü ile talep gücü aynı kavram değildir. Sözleşme gücü bağlantı/tarife ilişkili bir değeri, talep gücü ise hesapta esas alınan yük talebini ifade eder.'),
-    _TeknikKonu('Akım Trafosu', 'Trafo ve Ölçü Sistemleri', 'Akım trafosu primer devredeki yüksek akımı ölçü ve koruma devrelerinin uygun seviyesine dönüştürür. Oran, sekonder akımı, doğruluk sınıfı, burden, Ith ve Idyn birlikte değerlendirilmelidir.'),
-    _TeknikKonu('5P10 / 10P10', 'Trafo ve Ölçü Sistemleri', 'Koruma sınıfı gösterimidir. 5P veya 10P doğruluk sınırını, 10 ise ilgili koruma doğruluk limit faktörünü ifade eden teknik işaretlemedir. Kesin seçim koruma rölesi ve kısa devre hesabıyla doğrulanmalıdır.'),
-    _TeknikKonu('0,2S / 0,5S', 'Trafo ve Ölçü Sistemleri', 'Ölçü çekirdeğinin doğruluk sınıfını ifade eder. Ölçme devresinin amacı, sayaç/analizör gereksinimi ve ilgili şartnameye göre değerlendirilir.'),
-    _TeknikKonu('1 A / 5 A Sekonder', 'Trafo ve Ölçü Sistemleri', 'Akım trafosu sekonder anma akımı projeye göre 1 A veya 5 A olabilir. Örneğin 30/1 A seçimi mümkündür; bağlı cihazların giriş akımı ve toplam burden ile birlikte kontrol edilmelidir.'),
-    _TeknikKonu('Çoklu Sekonder / Çekirdek', 'Trafo ve Ölçü Sistemleri', 'Akım trafoları iki veya üç ayrı sekonder çekirdeğe sahip olabilir. Ölçü+koruma, iki ölçü veya üç ölçü gibi farklı uygulamalar mümkündür; her çekirdeğin sınıfı ve görevi ayrı belirlenir.'),
-    _TeknikKonu('Ith ve Idyn', 'Trafo ve Ölçü Sistemleri', 'Ith kısa süreli termik dayanımı, Idyn ise dinamik kısa devre dayanımını ifade eder. OG akım trafosu seçiminde şebekenin kısa devre seviyesiyle uyum kontrolü yapılmalıdır.'),
-    _TeknikKonu('Kablo Akım Taşıma Kapasitesi', 'Kablolar ve Hatlar', 'Kablo kapasitesi iletken malzemesi, kesit, döşeme yöntemi, ortam koşulları, devre sayısı ve düzeltme katsayılarına bağlıdır. Kesin değer ilgili standart ve üretici verileriyle doğrulanır.'),
-    _TeknikKonu('Gerilim Düşümü', 'Kablolar ve Hatlar', 'Gerilim düşümü hat uzunluğu, akım, iletken empedansı, güç faktörü ve sistem tipine bağlıdır. Kesit seçiminde akım taşıma kapasitesiyle birlikte değerlendirilir.'),
-    _TeknikKonu('ALPEK İletken', 'Kablolar ve Hatlar', 'ALPEK seçimi tasarım akımına göre yapılır. Gösterimde monofaze için faz+nötr, trifaze için 3 faz+nötr kesit yapısı kullanılır. KCMIL, kesit için farklı birim sistemidir.'),
-    _TeknikKonu('Boru / Tava Doluluk', 'Şantiye ve Uygulama', 'Boru doluluğu kablo dış çaplarından; tava doluluğu ise kullanılabilir tava genişliği ve derinliği ile gerçek kablo dış çaplarından değerlendirilmelidir.'),
-    _TeknikKonu('Reaktif Enerji', 'Kompanzasyon', 'Endüktif ve kapasitif enerji tüketimleri tarife/mevzuat koşullarına göre izlenir. Kompanzasyon hesabında yük karakteri, cos φ ve kademe yapısı birlikte değerlendirilir.'),
-    _TeknikKonu('Tarife ve Fatura Analizi', 'Faturalama', 'Fatura analizinde tarife türü önemlidir. ESA çevrim dışı çalıştığı için TL→kWh tahmini, ilgili tarife için tanımlanmış gerçek fatura referanslarıyla oransal olarak kalibre edilir.'),
-  ];
-
-  @override
-  void dispose() { arama.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final q = filtre.trim().toLowerCase();
-    final liste = q.isEmpty ? konular : konular.where((x) => ('${x.baslik} ${x.kategori} ${x.metin}').toLowerCase().contains(q)).toList();
-    return AppScaffold(
-      title: 'Teknik Bilgiler',
-      body: ScrollBody(children: [
-        SectionCard(title: 'Teknik bilgi ara', children: [
-          Field(controller: arama, label: 'Konu / terim / kısaltma', keyboardType: TextInputType.text),
-          ElevatedButton.icon(
-            onPressed: () => setState(() => filtre = arama.text),
-            icon: const Icon(Icons.search_rounded),
-            label: const Text('ARA'),
-          ),
-        ]),
-        ...liste.map((x) => Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            title: Text(x.baslik, style: TextStyle(color: cText(), fontWeight: FontWeight.w800)),
-            subtitle: Text(x.kategori, style: TextStyle(color: cIcon(), fontSize: 11, fontWeight: FontWeight.w700)),
-            trailing: Icon(Icons.chevron_right_rounded, color: cIcon()),
-            onTap: () => bilgiPopup(context, x.baslik, x.metin),
-          ),
-        )),
-        if (liste.isEmpty) const AdviceCard(title: 'Sonuç bulunamadı', text: 'Arama ifadenizle eşleşen teknik konu bulunamadı.'),
-      ]),
-    );
-  }
-}
 
 class _TeknikBilgilerKarti extends StatelessWidget {
   final bool isDark;
   final VoidCallback onTap;
 
-  const _TeknikBilgilerKarti({required this.isDark, required this.onTap});
+  const _TeknikBilgilerKarti({
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return _AracKarti(
-      arac: const _Arac('Teknik Bilgiler', Icons.menu_book_rounded, TeknikBilgilerEkrani()),
+      arac: const _Arac(
+        'Teknik Bilgiler',
+        Icons.menu_book_rounded,
+        TeknikBilgilerEkrani(),
+      ),
       isDark: isDark,
       onTap: onTap,
     );
   }
 }
 
+// ============================================================
+// SAHA NOTU KARTI
+// ============================================================
+
 class _SahaNotuCard extends StatelessWidget {
   final bool isDark;
   final String text;
 
-  const _SahaNotuCard({required this.isDark, required this.text});
+  const _SahaNotuCard({
+    required this.isDark,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {
     final card = isDark ? const Color(0xFF182431) : Colors.white;
+
     final fg = isDark ? const Color(0xFFE8F1FB) : const Color(0xFF103A68);
+
     final accent = isDark ? const Color(0xFF2C9BEF) : const Color(0xFF0B5CC9);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+      padding: const EdgeInsets.fromLTRB(
+        14,
+        12,
+        14,
+        13,
+      ),
       decoration: BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(12),
@@ -491,8 +563,14 @@ class _SahaNotuCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.tips_and_updates_rounded, color: accent, size: 23),
-          const SizedBox(width: 10),
+          Icon(
+            Icons.tips_and_updates_rounded,
+            color: accent,
+            size: 23,
+          ),
+          const SizedBox(
+            width: 10,
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,7 +583,9 @@ class _SahaNotuCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(
+                  height: 3,
+                ),
                 Text(
                   text,
                   style: TextStyle(
@@ -519,40 +599,6 @@ class _SahaNotuCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TeknikBilgilerBanner extends StatelessWidget {
-  final bool isDark;
-  final VoidCallback onTap;
-  const _TeknikBilgilerBanner({required this.isDark, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    final bg = isDark ? const Color(0xFF182431) : Colors.white;
-    final fg = isDark ? const Color(0xFFE8F1FB) : const Color(0xFF103A68);
-    final icon = isDark ? const Color(0xFF2C9BEF) : const Color(0xFF0B5CC9);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: isDark ? const Color(0xFF304355) : const Color(0xFFDCE6F2))),
-          child: Row(children: [
-            Icon(Icons.menu_book_rounded, color: icon, size: 28),
-            const SizedBox(width: 11),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Teknik Bilgiler', style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 14)),
-              const SizedBox(height: 2),
-              Text('Çevrim dışı teknik kütüphane • terim, hesap ve ekipman bilgileri', style: TextStyle(color: fg.withValues(alpha: .72), fontSize: 11)),
-            ])),
-            Icon(Icons.search_rounded, color: icon),
-          ]),
-        ),
       ),
     );
   }
@@ -605,7 +651,10 @@ class _AracKarti extends StatelessWidget {
               BoxShadow(
                 color: Color(0x16000000),
                 blurRadius: 5,
-                offset: Offset(0, 2),
+                offset: Offset(
+                  0,
+                  2,
+                ),
               ),
             ],
           ),
@@ -625,7 +674,9 @@ class _AracKarti extends StatelessWidget {
                   size: 25,
                 ),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(
+                height: 7,
+              ),
               Text(
                 arac.title,
                 textAlign: TextAlign.center,
@@ -647,7 +698,7 @@ class _AracKarti extends StatelessWidget {
 }
 
 // ============================================================
-// ALT MENÜ ALTYAPISI
+// ALT MENÜ VERİ MODELİ
 // ============================================================
 
 class MenuItemData {
@@ -663,6 +714,10 @@ class MenuItemData {
     this.page,
   );
 }
+
+// ============================================================
+// ALT MENÜ
+// ============================================================
 
 class SubMenu extends StatelessWidget {
   final String title;
@@ -702,7 +757,9 @@ class SubMenu extends StatelessWidget {
                 item: item,
                 onTap: () => Navigator.push(
                   context,
-                  materialRoute(item.page),
+                  materialRoute(
+                    item.page,
+                  ),
                 ),
               );
             },
@@ -712,6 +769,10 @@ class SubMenu extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// ALT MENÜ KARTI
+// ============================================================
 
 class _AltMenuKarti extends StatelessWidget {
   final MenuItemData item;
@@ -754,7 +815,10 @@ class _AltMenuKarti extends StatelessWidget {
               BoxShadow(
                 color: Color(0x16000000),
                 blurRadius: 5,
-                offset: Offset(0, 2),
+                offset: Offset(
+                  0,
+                  2,
+                ),
               ),
             ],
           ),
@@ -774,7 +838,9 @@ class _AltMenuKarti extends StatelessWidget {
                   size: 23,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(
+                height: 6,
+              ),
               Text(
                 item.title,
                 textAlign: TextAlign.center,
@@ -787,14 +853,18 @@ class _AltMenuKarti extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(
+                height: 3,
+              ),
               Text(
                 item.desc,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: text.withValues(alpha: .68),
+                  color: text.withValues(
+                    alpha: .68,
+                  ),
                   fontSize: 8.7,
                   height: 1.1,
                 ),
@@ -812,7 +882,9 @@ class _AltMenuKarti extends StatelessWidget {
 // ============================================================
 
 class HatSebekeMenu extends StatelessWidget {
-  const HatSebekeMenu({super.key});
+  const HatSebekeMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -822,11 +894,11 @@ class HatSebekeMenu extends StatelessWidget {
         '',
       ),
       items: [
-        // ------------------------------------------------------
-        // 1 - HAT ANALİZİ
-        // ------------------------------------------------------
         MenuItemData(
-          t('Hat Analizi', ''),
+          t(
+            'Hat Analizi',
+            '',
+          ),
           t(
             'Kesit, döşeme ve gerilim düşümü analizi',
             '',
@@ -834,12 +906,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.analytics,
           const HatAnaliziVeGerilimDusumuEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 2 - GERİLİM DÜŞÜMÜ
-        // ------------------------------------------------------
         MenuItemData(
-          t('Gerilim Düşümü', ''),
+          t(
+            'Gerilim Düşümü',
+            '',
+          ),
           t(
             'Kesit girerek doğrudan gerilim düşümünü kontrol et',
             '',
@@ -849,12 +920,11 @@ class HatSebekeMenu extends StatelessWidget {
             initialTab: 1,
           ),
         ),
-
-        // ------------------------------------------------------
-        // 3 - KABLO TAŞIMA KAPASİTESİ
-        // ------------------------------------------------------
         MenuItemData(
-          t('Kablo Taşıma Kapasitesi', ''),
+          t(
+            'Kablo Taşıma Kapasitesi',
+            '',
+          ),
           t(
             'Kesit ve döşeme şekline göre ön kapasite kontrolü',
             '',
@@ -862,12 +932,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.power,
           const KabloKapasitesiEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 4 - KABLO VE SİGORTA
-        // ------------------------------------------------------
         MenuItemData(
-          t('Kablo ve Sigorta Seçimi', ''),
+          t(
+            'Kablo ve Sigorta Seçimi',
+            '',
+          ),
           t(
             'Güç üzerinden standart koruma ön seçimi',
             '',
@@ -875,12 +944,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.shield,
           const SigortaEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 5 - AYDINLATMA
-        // ------------------------------------------------------
         MenuItemData(
-          t('Aydınlatma Hesabı', ''),
+          t(
+            'Aydınlatma Hesabı',
+            '',
+          ),
           t(
             'Mekân ve armatür verileriyle aydınlatma ön hesabı',
             '',
@@ -888,12 +956,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.lightbulb_rounded,
           const AydinlatmaHesabiEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 6 - DAĞITIM ŞEBEKE / ENH
-        // ------------------------------------------------------
         MenuItemData(
-          t('Şebeke / ENH Teknik Rehberi', ''),
+          t(
+            'Şebeke / ENH Teknik Rehberi',
+            '',
+          ),
           t(
             'AG, OG ve müşterek şebekelerde uygun direk, box ve tesis elemanlarını teknik-fiziki bilgilerle incele',
             '',
@@ -901,13 +968,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.account_tree_rounded,
           const DagitimSebekeEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 7 - AÇIK İLETKEN
-        // Yeni dosya: acik_iletken.dart
-        // ------------------------------------------------------
         MenuItemData(
-          t('Açık İletken', ''),
+          t(
+            'Açık İletken',
+            '',
+          ),
           t(
             'Havai AG açık iletken kesiti için ön seçim',
             '',
@@ -915,19 +980,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.swap_horiz,
           const AcikIletkenEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 8 - YERALTI KABLO
-        // Yeni dosya: yeralti_kablo.dart
-        //
-        // ESKİ:
-        // const OgKabloEkrani()
-        //
-        // YENİ:
-        // const YeraltiKabloEkrani()
-        // ------------------------------------------------------
         MenuItemData(
-          t('Yer Altı Kablolar', ''),
+          t(
+            'Yer Altı Kablolar',
+            '',
+          ),
           t(
             'Gerilim seviyesine ve akıma göre AG/OG yeraltı kablo ön seçimi',
             '',
@@ -935,13 +992,11 @@ class HatSebekeMenu extends StatelessWidget {
           Icons.cable_rounded,
           const YeraltiKabloEkrani(),
         ),
-
-        // ------------------------------------------------------
-        // 9 - ALPEK
-        // Yeni dosya: alpek_iletken.dart
-        // ------------------------------------------------------
         MenuItemData(
-          t('Alpek İletken', ''),
+          t(
+            'Alpek İletken',
+            '',
+          ),
           t(
             'Sistem tipi ve akıma göre ALPEK iletken kesiti ön seçimi',
             '',
@@ -959,7 +1014,9 @@ class HatSebekeMenu extends StatelessWidget {
 // ============================================================
 
 class PanoMenu extends StatelessWidget {
-  const PanoMenu({super.key});
+  const PanoMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -970,7 +1027,10 @@ class PanoMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('AG Pano Malzeme', ''),
+          t(
+            'AG Pano Malzeme',
+            '',
+          ),
           t(
             '1 kW–2000 kW aralığında ön malzeme seçimi',
             '',
@@ -979,7 +1039,10 @@ class PanoMenu extends StatelessWidget {
           const AnaPanoSecimiEkrani(),
         ),
         MenuItemData(
-          t('OG Hücre / Ölçü Gereksinimi', ''),
+          t(
+            'OG Hücre / Ölçü Gereksinimi',
+            '',
+          ),
           t(
             'Giriş, ölçü, çıkış ve trafo koruma düzeni',
             '',
@@ -988,7 +1051,10 @@ class PanoMenu extends StatelessWidget {
           const OgGereksinimEkrani(),
         ),
         MenuItemData(
-          t('OG Trafo Standart Pano', ''),
+          t(
+            'OG Trafo Standart Pano',
+            '',
+          ),
           t(
             'Trafo AG buşinginden pano çıkış barasına kadar ön liste',
             '',
@@ -997,7 +1063,10 @@ class PanoMenu extends StatelessWidget {
           const OgTrafoStandartPanoEkrani(),
         ),
         MenuItemData(
-          t('Ölçü Trafo Hesaplama', ''),
+          t(
+            'Ölçü Trafo Hesaplama',
+            '',
+          ),
           t(
             'Akım ve gerilim trafosu ön seçimi ve ölçü gereksinimleri',
             '',
@@ -1015,7 +1084,9 @@ class PanoMenu extends StatelessWidget {
 // ============================================================
 
 class KompMenu extends StatelessWidget {
-  const KompMenu({super.key});
+  const KompMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1026,7 +1097,10 @@ class KompMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('Fatura / Arıza Kontrol', ''),
+          t(
+            'Fatura / Arıza Kontrol',
+            '',
+          ),
           t(
             'T, T1, T2, T3, RI, RC ilk/son endeksleri ile reaktif analiz ve onarım yönlendirmesi',
             '',
@@ -1035,7 +1109,10 @@ class KompMenu extends StatelessWidget {
           const KompanzasyonAnaEkrani(),
         ),
         MenuItemData(
-          t('Mevcut Sistem Analizi', ''),
+          t(
+            'Mevcut Sistem Analizi',
+            '',
+          ),
           t(
             'Mevcut pano, kademe, kondansatör, reaktör, CT ve sürücü durumunu analiz eder',
             '',
@@ -1044,7 +1121,10 @@ class KompMenu extends StatelessWidget {
           const KompMevcutSistemAnaliziEkrani(),
         ),
         MenuItemData(
-          t('Pano Tasarım / Kademe', ''),
+          t(
+            'Pano Tasarım / Kademe',
+            '',
+          ),
           t(
             'Mevcut sistem analizi mantığında kapsamlı kademe, koruma, CT, bara, kablo ve pano ön tasarımı',
             '',
@@ -1062,7 +1142,9 @@ class KompMenu extends StatelessWidget {
 // ============================================================
 
 class MotorMenu extends StatelessWidget {
-  const MotorMenu({super.key});
+  const MotorMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1073,7 +1155,10 @@ class MotorMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('Motor Koruma ve Yol Verme', ''),
+          t(
+            'Motor Koruma ve Yol Verme',
+            '',
+          ),
           t(
             'Motor akımı, koruma ve yol verme ön hesabı',
             '',
@@ -1082,7 +1167,10 @@ class MotorMenu extends StatelessWidget {
           const MotorKorumaEkrani(),
         ),
         MenuItemData(
-          t('Trifaze → Monofaze', ''),
+          t(
+            'Trifaze → Monofaze',
+            '',
+          ),
           t(
             'Daimi ve ilk hareket kondansatörü ön hesabı',
             '',
@@ -1100,7 +1188,9 @@ class MotorMenu extends StatelessWidget {
 // ============================================================
 
 class GesMenu extends StatelessWidget {
-  const GesMenu({super.key});
+  const GesMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1111,7 +1201,10 @@ class GesMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('Otomatik Tasarım', ''),
+          t(
+            'Otomatik Tasarım',
+            '',
+          ),
           t(
             'Otomatik GES hesabı',
             '',
@@ -1120,7 +1213,10 @@ class GesMenu extends StatelessWidget {
           const GesOtomatikEkrani(),
         ),
         MenuItemData(
-          t('Manuel Sistem Analizi', ''),
+          t(
+            'Manuel Sistem Analizi',
+            '',
+          ),
           t(
             'Panel, akü ve inverter uyumluluğu',
             '',
@@ -1129,7 +1225,10 @@ class GesMenu extends StatelessWidget {
           const GesManuelEkrani(),
         ),
         MenuItemData(
-          t('Çatı Alanından Tasarım', ''),
+          t(
+            'Çatı Alanından Tasarım',
+            '',
+          ),
           t(
             'En × boy alanından panel ve güç ön hesabı',
             '',
@@ -1144,20 +1243,12 @@ class GesMenu extends StatelessWidget {
 
 // ============================================================
 // ŞANTİYE ARAÇLARI
-//
-// DİKKAT:
-// Açık İletken
-// Yeraltı Kablo
-// Alpek İletken
-//
-// BU MENÜDEN ÇIKARILDI.
-//
-// Burada yalnızca gerçekten şantiye işlerine ait araçlar
-// kalacak.
 // ============================================================
 
 class SantiyeMenu extends StatelessWidget {
-  const SantiyeMenu({super.key});
+  const SantiyeMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1168,7 +1259,10 @@ class SantiyeMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('Boru / Tava Doluluk', ''),
+          t(
+            'Boru / Tava Doluluk',
+            '',
+          ),
           t(
             'AG/OG, Cu/Al ve kablo yapısına göre doluluk ön hesabı',
             '',
@@ -1177,7 +1271,10 @@ class SantiyeMenu extends StatelessWidget {
           const BoruTavaEkrani(),
         ),
         MenuItemData(
-          t('Makarada Kalan Kablo', ''),
+          t(
+            'Makarada Kalan Kablo',
+            '',
+          ),
           t(
             'Makara geometrisinden yaklaşık kalan metraj ve ağırlık',
             '',
@@ -1195,7 +1292,9 @@ class SantiyeMenu extends StatelessWidget {
 // ============================================================
 
 class FaturalamaMenu extends StatelessWidget {
-  const FaturalamaMenu({super.key});
+  const FaturalamaMenu({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1206,22 +1305,16 @@ class FaturalamaMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t('Fatura Tahminleme', ''),
+          t(
+            'Fatura Tahminleme',
+            '',
+          ),
           t(
             'Cihaz sepetinden aylık kWh ve isteğe bağlı tutar',
             '',
           ),
           Icons.shopping_cart_rounded,
           const CihazSepetiEkrani(),
-        ),
-        MenuItemData(
-          t('Fatura Analizi', ''),
-          t(
-            'Fatura tutarı + kWh üzerinden kalem analizi',
-            '',
-          ),
-          Icons.receipt_long_rounded,
-          const FaturaAnaliziEkrani(),
         ),
       ],
     );

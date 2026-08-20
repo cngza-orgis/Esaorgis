@@ -7,9 +7,9 @@ part of 'main.dart';
 // Bu dosyada yalnızca Şantiye Araçları grubuna ait araçlar bulunur.
 //
 // Hat ve Şebeke Araçları'na taşınan araçlar:
-//   - Açık İletken   -> acik_iletken.dart
-//   - Yer Altı Kablo -> yeralti_kablo.dart
-//   - Alpek İletken  -> alpek_iletken.dart
+//   - Açık İletken
+//   - Yer Altı Kablo
+//   - Alpek İletken
 //
 // ================================================================
 
@@ -24,7 +24,10 @@ double _santiyeDouble(String value) {
       0;
 }
 
-String _santiyeFmt(double value, {int digits = 1}) {
+String _santiyeFmt(
+  double value, {
+  int digits = 1,
+}) {
   return value.toStringAsFixed(digits).replaceAll('.', ',');
 }
 
@@ -32,19 +35,15 @@ String _santiyeFmt(double value, {int digits = 1}) {
 // 1. BORU / TAVA DOLULUK
 // ================================================================
 //
-// Boru ve tava hesapları geometrik olarak ayrı yapılır:
-//
 // BORU:
-//   Kabloların toplam dairesel alanı / boru iç dairesel alanı
+// Kabloların toplam dairesel alanı / borunun iç dairesel alanı.
 //
 // TAVA:
-//   Kabloların toplam dairesel alanı / tava kullanılabilir
-//   dikdörtgen alanı
+// Kabloların toplam dairesel alanı / kullanılabilir tava alanı.
 //
-// Buradaki sonuç "geometrik doluluk" olarak değerlendirilir.
-// Kesin saha uygunluğu; gerçek kablo dış çapı, döşeme şekli,
-// ısı koşulları, bükülme yarıçapı ve ilgili standart/şartname
-// hükümleri ile ayrıca doğrulanmalıdır.
+// ÖNEMLİ:
+// Bu araç geometrik doluluk hesabı yapar.
+// Kablo dış çapı gerçek kablo verisinden alınmalıdır.
 //
 // ================================================================
 
@@ -57,10 +56,8 @@ class BoruTavaEkrani extends StatefulWidget {
 
 class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
   String uygulama = 'Boru';
-
   String gerilim = 'AG';
   String iletken = 'Bakır';
-
   String kesit = '1x1,5 mm²';
 
   final TextEditingController adet = TextEditingController(text: '1');
@@ -74,11 +71,8 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
   final TextEditingController tavaDerinlik = TextEditingController(text: '50');
 
   double? doluluk;
-
   double? kabloAlan;
-
   double? toplamKabloAlan;
-
   double? tasiyiciAlan;
 
   String? hesapDetayi;
@@ -86,102 +80,78 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
   // --------------------------------------------------------------
   // Kablo listesi
   // --------------------------------------------------------------
-  //
-  // Öncelikli olarak uygulamadaki standartKabloSecimListesi
-  // kullanılır.
-  //
-  // Eğer mevcut liste içerisinde seçili değer bulunmazsa temel
-  // seçim listesi kullanılır.
-  //
-  // Gerçek kablo dış çapı kullanıcıdan ayrıca alınır. Böylece
-  // kablo dış çapı kesitten tahmini olarak uydurulmaz.
-  // --------------------------------------------------------------
 
   List<String> get _kabloListesi {
-    final List<String> mevcut = List<String>.from(standartKabloSecimListesi);
+    final mevcut = List<String>.from(standartKabloSecimListesi);
 
-    if (mevcut.isEmpty) {
-      return <String>[
-        '1x0,75 mm²',
-        '1x1 mm²',
-        '1x1,5 mm²',
-        '1x2,5 mm²',
-        '1x4 mm²',
-        '1x6 mm²',
-        '1x10 mm²',
-        '1x16 mm²',
-        '1x25 mm²',
-        '1x35 mm²',
-        '1x50 mm²',
-        '1x70 mm²',
-        '1x95 mm²',
-        '1x120 mm²',
-        '1x150 mm²',
-        '1x185 mm²',
-        '1x240 mm²',
-        '2x1,5 mm²',
-        '2x2,5 mm²',
-        '2x4 mm²',
-        '2x6 mm²',
-        '2x10 mm²',
-        '2x16 mm²',
-        '2x25 mm²',
-        '2x35 mm²',
-        '2x50 mm²',
-        '2x70 mm²',
-        '2x95 mm²',
-        '2x120 mm²',
-        '2x150 mm²',
-        '2x185 mm²',
-        '2x240 mm²',
-        '3x1,5 mm²',
-        '3x2,5 mm²',
-        '3x4 mm²',
-        '3x6 mm²',
-        '3x10 mm²',
-        '3x16 mm²',
-        '3x25 mm²',
-        '3x35 mm²',
-        '3x50 mm²',
-        '3x70 mm²',
-        '3x95 mm²',
-        '3x120 mm²',
-        '3x150 mm²',
-        '3x185 mm²',
-        '3x240 mm²',
-        '3x25+16 mm²',
-        '3x35+16 mm²',
-        '3x50+25 mm²',
-        '3x70+35 mm²',
-        '3x95+50 mm²',
-        '3x120+70 mm²',
-        '3x150+70 mm²',
-        '3x185+95 mm²',
-        '3x240+120 mm²',
-      ];
+    if (mevcut.isNotEmpty) {
+      return mevcut;
     }
 
-    return mevcut;
+    return const <String>[
+      '1x0,75 mm²',
+      '1x1 mm²',
+      '1x1,5 mm²',
+      '1x2,5 mm²',
+      '1x4 mm²',
+      '1x6 mm²',
+      '1x10 mm²',
+      '1x16 mm²',
+      '1x25 mm²',
+      '1x35 mm²',
+      '1x50 mm²',
+      '1x70 mm²',
+      '1x95 mm²',
+      '1x120 mm²',
+      '1x150 mm²',
+      '1x185 mm²',
+      '1x240 mm²',
+      '2x1,5 mm²',
+      '2x2,5 mm²',
+      '2x4 mm²',
+      '2x6 mm²',
+      '2x10 mm²',
+      '2x16 mm²',
+      '2x25 mm²',
+      '2x35 mm²',
+      '2x50 mm²',
+      '2x70 mm²',
+      '2x95 mm²',
+      '2x120 mm²',
+      '2x150 mm²',
+      '2x185 mm²',
+      '2x240 mm²',
+      '3x1,5 mm²',
+      '3x2,5 mm²',
+      '3x4 mm²',
+      '3x6 mm²',
+      '3x10 mm²',
+      '3x16 mm²',
+      '3x25 mm²',
+      '3x35 mm²',
+      '3x50 mm²',
+      '3x70 mm²',
+      '3x95 mm²',
+      '3x120 mm²',
+      '3x150 mm²',
+      '3x185 mm²',
+      '3x240 mm²',
+      '3x25+16 mm²',
+      '3x35+16 mm²',
+      '3x50+25 mm²',
+      '3x70+35 mm²',
+      '3x95+50 mm²',
+      '3x120+70 mm²',
+      '3x150+70 mm²',
+      '3x185+95 mm²',
+      '3x240+120 mm²',
+    ];
   }
-
-  // --------------------------------------------------------------
-  // Kesit seçiminde malzeme filtresi
-  // --------------------------------------------------------------
-  //
-  // Kesit listesi yapısal isimlerden oluşuyorsa malzeme bilgisini
-  // doğrudan isimden çıkarmak güvenli değildir.
-  //
-  // Bu nedenle Cu/Al seçimi burada kablo veri yapısına gönderilecek
-  // seçim bilgisi olarak tutulur. Dış çap ise üretici/teknik veri
-  // üzerinden doğrulanmalıdır.
-  //
-  // Bu yapı ileride merkezi kablo veri tabanına bağlanmaya hazırdır.
-  // --------------------------------------------------------------
 
   List<String> get _filtreliKabloListesi {
     final liste = _kabloListesi.toSet().toList();
 
-    if (!liste.contains(kesit) && liste.isNotEmpty) {
+    if (liste.isNotEmpty && !liste.contains(kesit)) {
       kesit = liste.first;
     }
 
@@ -189,13 +159,13 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
   }
 
   // --------------------------------------------------------------
-  // Boru hesabı
+  // BORU HESABI
   // --------------------------------------------------------------
 
   void _hesaplaBoru() {
-    final double n = _santiyeDouble(adet.text);
-    final double dk = _santiyeDouble(kabloCap.text);
-    final double db = _santiyeDouble(boruCap.text);
+    final n = _santiyeDouble(adet.text);
+    final dk = _santiyeDouble(kabloCap.text);
+    final db = _santiyeDouble(boruCap.text);
 
     if (n <= 0 || dk <= 0 || db <= 0) {
       setState(() {
@@ -213,13 +183,13 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
       return;
     }
 
-    final double tekKabloAlan = pi * pow(dk / 2, 2).toDouble();
+    final tekKabloAlan = pi * pow(dk / 2, 2).toDouble();
 
-    final double toplamAlan = tekKabloAlan * n;
+    final toplamAlan = tekKabloAlan * n;
 
-    final double boruAlan = pi * pow(db / 2, 2).toDouble();
+    final boruAlan = pi * pow(db / 2, 2).toDouble();
 
-    final double sonuc = toplamAlan / boruAlan * 100;
+    final sonuc = toplamAlan / boruAlan * 100;
 
     setState(() {
       doluluk = sonuc;
@@ -227,22 +197,26 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
       toplamKabloAlan = toplamAlan;
       tasiyiciAlan = boruAlan;
 
-      hesapDetayi = 'Boru iç kesit alanı: ${_santiyeFmt(boruAlan)} mm²\n'
-          'Tek kablo dış kesit alanı: ${_santiyeFmt(tekKabloAlan)} mm²\n'
-          'Toplam kablo alanı: ${_santiyeFmt(toplamAlan)} mm²\n'
-          'Kablo adedi: ${_santiyeFmt(n, digits: 0)}';
+      hesapDetayi = 'Boru iç kesit alanı: '
+          '${_santiyeFmt(boruAlan)} mm²\n'
+          'Tek kablo dış kesit alanı: '
+          '${_santiyeFmt(tekKabloAlan)} mm²\n'
+          'Toplam kablo alanı: '
+          '${_santiyeFmt(toplamAlan)} mm²\n'
+          'Kablo adedi: '
+          '${_santiyeFmt(n, digits: 0)}';
     });
   }
 
   // --------------------------------------------------------------
-  // Tava hesabı
+  // TAVA HESABI
   // --------------------------------------------------------------
 
   void _hesaplaTava() {
-    final double n = _santiyeDouble(adet.text);
-    final double dk = _santiyeDouble(kabloCap.text);
-    final double genislik = _santiyeDouble(tavaGenislik.text);
-    final double derinlik = _santiyeDouble(tavaDerinlik.text);
+    final n = _santiyeDouble(adet.text);
+    final dk = _santiyeDouble(kabloCap.text);
+    final genislik = _santiyeDouble(tavaGenislik.text);
+    final derinlik = _santiyeDouble(tavaDerinlik.text);
 
     if (n <= 0 || dk <= 0 || genislik <= 0 || derinlik <= 0) {
       setState(() {
@@ -252,13 +226,13 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
       return;
     }
 
-    final double tekKabloAlan = pi * pow(dk / 2, 2).toDouble();
+    final tekKabloAlan = pi * pow(dk / 2, 2).toDouble();
 
-    final double toplamAlan = tekKabloAlan * n;
+    final toplamAlan = tekKabloAlan * n;
 
-    final double tavaAlan = genislik * derinlik;
+    final tavaAlan = genislik * derinlik;
 
-    final double sonuc = toplamAlan / tavaAlan * 100;
+    final sonuc = toplamAlan / tavaAlan * 100;
 
     setState(() {
       doluluk = sonuc;
@@ -272,7 +246,8 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
           '${_santiyeFmt(tekKabloAlan)} mm²\n'
           'Toplam kablo alanı: '
           '${_santiyeFmt(toplamAlan)} mm²\n'
-          'Kablo adedi: ${_santiyeFmt(n, digits: 0)}';
+          'Kablo adedi: '
+          '${_santiyeFmt(n, digits: 0)}';
     });
   }
 
@@ -294,6 +269,10 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
     super.dispose();
   }
 
+  // --------------------------------------------------------------
+  // BUILD
+  // --------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -305,14 +284,14 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
       onInfo: () => bilgiPopup(
         context,
         'Boru / Tava Doluluk',
-        'Boru ve tava doluluk hesabı geometrik alan yaklaşımıyla '
-            'yapılır. Boru hesabında borunun iç dairesel alanı, tava '
-            'hesabında ise tava genişliği ile kullanılabilir derinliğinin '
+        'Bu araç boru ve kablo tavasındaki geometrik doluluk oranını '
+            'hesaplar. Boru hesabında borunun iç kesit alanı, tava '
+            'hesabında ise tava genişliği ile kullanılabilir derinliğin '
             'oluşturduğu alan esas alınır. Kablo alanı gerçek kablo dış '
-            'çapından hesaplanmalıdır. Sonuç geometrik doluluk '
-            'ön değerlendirmesidir; kesin uygunluk gerçek kablo dış çapı, '
-            'döşeme koşulları, ısı dağılımı, bükülme koşulları ve ilgili '
-            'tesisat standardı/şartname hükümleriyle doğrulanmalıdır.',
+            'çapından hesaplanmalıdır. Sonuç tek başına nihai tesisat '
+            'uygunluğu anlamına gelmez; gerçek kablo dış çapı, yerleşim, '
+            'ısı dağılımı, bükülme yarıçapı ve ilgili standart/şartname '
+            'hükümleri ayrıca değerlendirilmelidir.',
       ),
       body: ScrollBody(
         children: [
@@ -391,7 +370,9 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
                 ),
                 value: _filtreliKabloListesi.contains(kesit)
                     ? kesit
-                    : _filtreliKabloListesi.first,
+                    : _filtreliKabloListesi.isNotEmpty
+                        ? _filtreliKabloListesi.first
+                        : '',
                 items: _filtreliKabloListesi,
                 onChanged: (v) {
                   if (v == null) return;
@@ -417,7 +398,7 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
                   'Cable Outer Diameter (mm)',
                 ),
               ),
-              if (uygulama == 'Boru') ...[
+              if (uygulama == 'Boru')
                 Field(
                   controller: boruCap,
                   label: t(
@@ -425,8 +406,7 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
                     'Conduit Inner Diameter (mm)',
                   ),
                 ),
-              ],
-              if (uygulama == 'Tava') ...[
+              if (uygulama == 'Tava')
                 twoCol(
                   Field(
                     controller: tavaGenislik,
@@ -443,7 +423,6 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
                     ),
                   ),
                 ),
-              ],
               calcButton(
                 t(
                   'DOLULUĞU HESAPLA',
@@ -489,18 +468,18 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
               'Technical note',
             ),
             text: t(
-              'Boru hesabında iç çap, tava hesabında genişlik ve '
-                  'kullanılabilir derinlik esas alınır. Kablo alanı gerçek '
-                  'kablo dış çapından hesaplanmalıdır. Geometrik doluluk '
-                  'sonucu tek başına tesisatın kesin uygunluğu anlamına '
-                  'gelmez. Gerçek kablo dış çapı, kablo yerleşimi, ısı '
-                  'dağılımı, bükülme yarıçapı ve ilgili standart/şartname '
+              'Boru hesabında borunun iç çapı, tava hesabında ise '
+                  'tavanın kullanılabilir genişlik ve derinliği esas '
+                  'alınır. Kablo alanı gerçek kablo dış çapından '
+                  'hesaplanmalıdır. Geometrik doluluk sonucu tek başına '
+                  'tesisatın kesin uygunluğu anlamına gelmez. Gerçek '
+                  'kablo dış çapı, kablo yerleşimi, ısı dağılımı, '
+                  'bükülme yarıçapı ve ilgili standart/şartname '
                   'hükümleri ayrıca kontrol edilmelidir.',
               'Conduit calculation uses the inner diameter, while '
-                  'tray calculation uses width and usable depth. Cable '
-                  'area must be calculated from the actual cable outer '
-                  'diameter. Geometric fill alone does not establish '
-                  'final installation compliance.',
+                  'tray calculation uses the usable width and depth. '
+                  'Cable area must be calculated from the actual outer '
+                  'diameter.',
             ),
           ),
         ],
@@ -513,24 +492,15 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
 // 2. MAKARADA KALAN KABLO
 // ================================================================
 //
-// Hesap yöntemi:
+// Teorik hesap:
 //
-// Makara kablo sarım hacmi:
+// Vmakara = π/4 × (D² - d²) × W
 //
-//   V = π / 4 × (D² - d²) × W
+// Vkablo(1m) = π/4 × dk² × 1000
 //
-// Bir metre kablonun teorik hacmi:
+// L = Vmakara / Vkablo(1m)
 //
-//   V1 = π / 4 × dk²
-//
-// Teorik metraj:
-//
-//   L = W × (D² - d²) / dk²
-//
-// Sonuç "tahmini / teorik kalan metraj" olarak gösterilir.
-// Sarım boşlukları ve gerçek sarım düzeni nedeniyle kesin stok
-// miktarı olarak değerlendirilmemelidir.
-//
+// Sonuç tahmini / teorik metrajdır.
 // ================================================================
 
 class MakaraEkrani extends StatefulWidget {
@@ -553,18 +523,16 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
   final TextEditingController kabloCap = TextEditingController(text: '30');
 
   double? metraj;
-
   double? makaraHacmi;
-
   double? kabloBirimHacmi;
 
   String? detay;
 
   void hesapla() {
-    final double D = _santiyeDouble(disCap.text);
-    final double d = _santiyeDouble(gobekCap.text);
-    final double W = _santiyeDouble(genislik.text);
-    final double dk = _santiyeDouble(kabloCap.text);
+    final D = _santiyeDouble(disCap.text);
+    final d = _santiyeDouble(gobekCap.text);
+    final W = _santiyeDouble(genislik.text);
+    final dk = _santiyeDouble(kabloCap.text);
 
     if (D <= 0 || d <= 0 || W <= 0 || dk <= 0) {
       setState(() {
@@ -597,16 +565,11 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
       return;
     }
 
-    // mm cinsinden makara sarım hacmi.
-    final double hacim =
-        pi / 4 * (pow(D, 2).toDouble() - pow(d, 2).toDouble()) * W;
+    final hacim = pi / 4 * (pow(D, 2).toDouble() - pow(d, 2).toDouble()) * W;
 
-    // 1 metre kablonun hacmi.
-    // Kablo çapı mm, uzunluk 1000 mm olduğundan:
-    // mm³/metre.
-    final double birimHacim = pi / 4 * pow(dk, 2).toDouble() * 1000;
+    final birimHacim = pi / 4 * pow(dk, 2).toDouble() * 1000;
 
-    final double sonuc = hacim / birimHacim;
+    final sonuc = hacim / birimHacim;
 
     setState(() {
       metraj = sonuc;
@@ -643,12 +606,10 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
         context,
         'Makarada Kalan Kablo',
         'Bu araç makara geometrisi ile kablo dış çapını kullanarak '
-            'makaraya sarılabilecek teorik kablo metrajını hesaplar. '
-            'Hesapta makaranın dış çapı, göbek çapı ve genişliği ile '
-            'kablonun gerçek dış çapı esas alınır. Sonuç teorik/tahmini '
-            'metrajdır; gerçek sarım boşlukları, kablonun sarım düzeni, '
-            'makara flanşları ve üretici geometrisi nedeniyle gerçek '
-            'stok metrajı farklı olabilir.',
+            'teorik kalan kablo metrajını hesaplar. Makaranın dış çapı, '
+            'göbek çapı, genişliği ve kablonun gerçek dış çapı esas '
+            'alınır. Sarım boşlukları ve gerçek sarım düzeni nedeniyle '
+            'sonuç tahmini kabul edilmelidir.',
       ),
       body: ScrollBody(
         children: [
@@ -743,7 +704,10 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
                 'Tahmini Kalan Metraj',
                 'Estimated Remaining Length',
               ),
-              _santiyeFmt(metraj!, digits: 1),
+              _santiyeFmt(
+                metraj!,
+                digits: 1,
+              ),
               'm',
             ),
             if (detay != null)
@@ -773,20 +737,16 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
               'Technical note',
             ),
             text: t(
-              'Hesap makaranın kablo sarılabilir geometrik hacmi ile '
+              'Hesap, makaranın kablo sarılabilir geometrik hacmi ile '
                   'kablonun birim uzunluk hacminin karşılaştırılmasına '
                   'dayanır. Kablo dış çapı mümkünse üretici teknik '
-                  'verisinden alınmalıdır. Sarım aralıkları, kablonun '
-                  'gerçek sarım düzeni, makara flanşları ve üretim '
-                  'toleransları nedeniyle sonuç teorik/tahmini kabul '
-                  'edilmelidir; gerçek stok miktarı yerine doğrudan '
-                  'kullanılmamalıdır.',
-              'The calculation compares the reel winding volume '
-                  'with the cable volume per unit length. The cable '
-                  'outer diameter should preferably be taken from the '
-                  'manufacturer data. The result is theoretical and '
-                  'estimated because of winding gaps, winding pattern, '
-                  'flanges and manufacturing tolerances.',
+                  'verisinden alınmalıdır. Sarım boşlukları, sarım düzeni, '
+                  'flanşlar ve üretim toleransları nedeniyle sonuç teorik '
+                  've tahmini kabul edilmelidir.',
+              'The calculation compares the reel winding volume with '
+                  'the cable volume per unit length. The result is '
+                  'theoretical and estimated because of winding gaps '
+                  'and reel geometry.',
             ),
           ),
         ],

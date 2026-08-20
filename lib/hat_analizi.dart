@@ -1142,7 +1142,8 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
         akim: null,
         dogrulanmis: false,
         yaklasik: false,
-        kaynak: 'Seçilen döşeme şekli için doğrulanmış taşıma kapasitesi modeli bulunmuyor.',
+        kaynak:
+            'Seçilen döşeme şekli için doğrulanmış taşıma kapasitesi modeli bulunmuyor.',
       );
     }
 
@@ -1396,8 +1397,9 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
   _HatEmpedansSonucu _empedansSonucu(String secim) {
     final kesit = _sayisalKesit(secim);
+    final paralel = _paralelSayisi(secim);
 
-    if (kesit <= 0) {
+    if (kesit <= 0 || paralel <= 0) {
       return const _HatEmpedansSonucu(
         rOhmKm: 0,
         xOhmKm: 0,
@@ -1420,13 +1422,15 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       final kullanilanX = x ?? _yaklasikX(kesit: kesit);
 
       return _HatEmpedansSonucu(
-        rOhmKm: kullanilanR,
-        xOhmKm: kullanilanX,
+        rOhmKm: kullanilanR / paralel,
+        xOhmKm: kullanilanX / paralel,
         rYaklasik: r == null,
         xYaklasik: x == null,
-        kaynak: r == null
-            ? 'R fiziksel iletken modeliyle yaklaşık hesaplandı.'
-            : 'R teknik direnç tablosundan alındı.',
+        kaynak: paralel > 1
+            ? 'R/X verileri $paralel paralel kablo için eşdeğer empedansa dönüştürüldü.'
+            : (r == null
+                ? 'R fiziksel iletken modeliyle yaklaşık hesaplandı.'
+                : 'R teknik direnç tablosundan alındı.'),
       );
     }
 
@@ -1440,13 +1444,15 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
           );
 
       return _HatEmpedansSonucu(
-        rOhmKm: kullanilanR,
-        xOhmKm: _yaklasikX(kesit: kesit),
+        rOhmKm: kullanilanR / paralel,
+        xOhmKm: _yaklasikX(kesit: kesit) / paralel,
         rYaklasik: r == null,
         xYaklasik: true,
-        kaynak: r == null
-            ? 'Alüminyum R fiziksel modelle yaklaşık hesaplandı.'
-            : 'Alüminyum R teknik direnç tablosundan alındı.',
+        kaynak: paralel > 1
+            ? 'Alüminyum R/X verileri $paralel paralel kablo için eşdeğer empedansa dönüştürüldü.'
+            : (r == null
+                ? 'Alüminyum R fiziksel modelle yaklaşık hesaplandı.'
+                : 'Alüminyum R teknik direnç tablosundan alındı.'),
       );
     }
 
@@ -1467,39 +1473,48 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
     if (iletkenTipi == 'Alpek İletken') {
       return _HatEmpedansSonucu(
         rOhmKm: _fizikselR(
-          kesit: kesit,
-          bakir: false,
-        ),
-        xOhmKm: _yaklasikX(kesit: kesit),
+              kesit: kesit,
+              bakir: false,
+            ) /
+            paralel,
+        xOhmKm: _yaklasikX(kesit: kesit) / paralel,
         rYaklasik: true,
         xYaklasik: true,
-        kaynak: 'ALPEK için fiziksel iletken modeli.',
+        kaynak: paralel > 1
+            ? 'ALPEK için fiziksel iletken modeli ve paralel kablo eşdeğeri kullanıldı.'
+            : 'ALPEK için fiziksel iletken modeli.',
       );
     }
 
     if (iletkenTipi == 'N2XSY Kablo') {
       return _HatEmpedansSonucu(
         rOhmKm: _fizikselR(
-          kesit: kesit,
-          bakir: true,
-        ),
-        xOhmKm: 0.10,
+              kesit: kesit,
+              bakir: true,
+            ) /
+            paralel,
+        xOhmKm: 0.10 / paralel,
         rYaklasik: true,
         xYaklasik: true,
-        kaynak: 'OG bakır kablo için yaklaşık empedans modeli.',
+        kaynak: paralel > 1
+            ? 'OG bakır kablo için yaklaşık empedans modeli ve paralel kablo eşdeğeri kullanıldı.'
+            : 'OG bakır kablo için yaklaşık empedans modeli.',
       );
     }
 
     if (iletkenTipi == 'NA2XSY Kablo') {
       return _HatEmpedansSonucu(
         rOhmKm: _fizikselR(
-          kesit: kesit,
-          bakir: false,
-        ),
-        xOhmKm: 0.10,
+              kesit: kesit,
+              bakir: false,
+            ) /
+            paralel,
+        xOhmKm: 0.10 / paralel,
         rYaklasik: true,
         xYaklasik: true,
-        kaynak: 'OG alüminyum kablo için yaklaşık empedans modeli.',
+        kaynak: paralel > 1
+            ? 'OG alüminyum kablo için yaklaşık empedans modeli ve paralel kablo eşdeğeri kullanıldı.'
+            : 'OG alüminyum kablo için yaklaşık empedans modeli.',
       );
     }
 
@@ -1574,25 +1589,21 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
   }) {
     final adaylar = _adaylar();
 
-    String? ilkAkisUygun;
-    _HatKapasiteSonucu? ilkKapasite;
-
     for (final aday in adaylar) {
-      final sonuc = _kapasiteSonucu(aday);
+      final kapasiteSonucu = _kapasiteSonucu(aday);
+      final cap = kapasiteSonucu.akim;
 
-      if (!sonuc.mevcut) {
+      // Kapasite hesabı üretilemeyen aday teknik olarak doğrulanamaz.
+      if (cap == null || cap <= 0) {
         continue;
       }
 
-      final cap = sonuc.akim!;
-
+      // Önce taşıma kapasitesi şartı sağlanmalı.
       if (cap < requiredCurrent) {
         continue;
       }
 
-      ilkAkisUygun ??= aday;
-      ilkKapasite ??= sonuc;
-
+      // Ardından aynı aday için gerilim düşümü kontrol edilir.
       final du = _gerilimDusumuYuzde(
         current: requiredCurrent,
         distanceM: distanceM,
@@ -1601,23 +1612,24 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
         secim: aday,
       );
 
-      if (du != null && du <= izinVerilenDusum) {
+      // Gerilim düşümü hesaplanamıyorsa aday nihai öneri olamaz.
+      if (du == null) {
+        continue;
+      }
+
+      // Hem taşıma kapasitesi hem gerilim düşümü uygun olan
+      // ilk aday teknik öneri olarak kabul edilir.
+      if (du <= izinVerilenDusum) {
         onerilenKapasite = cap;
-        onerilenKapasiteYaklasik = sonuc.yaklasik;
-        onerilenKapasiteKaynak = sonuc.kaynak;
+        onerilenKapasiteYaklasik = kapasiteSonucu.yaklasik;
+        onerilenKapasiteKaynak = kapasiteSonucu.kaynak;
 
         return aday;
       }
     }
 
-    if (ilkAkisUygun != null && ilkKapasite != null) {
-      onerilenKapasite = ilkKapasite.akim;
-      onerilenKapasiteYaklasik = ilkKapasite.yaklasik;
-      onerilenKapasiteKaynak = ilkKapasite.kaynak;
-
-      return ilkAkisUygun;
-    }
-
+    // Hiçbir aday hem akım hem gerilim düşümü kriterini sağlayamadıysa
+    // uygun olmayan bir kesiti "önerilen" olarak göstermiyoruz.
     return null;
   }
 
@@ -1709,12 +1721,12 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       yeniDurum = 'UYGUN';
 
       final kapasiteMetni = kapasiteSonucu.yaklasik
-          ? 'yaklaşık ${cap!.toStringAsFixed(1)} A'
-          : '${cap!.toStringAsFixed(1)} A';
+          ? 'yaklaşık ${cap.toStringAsFixed(1)} A'
+          : '${cap.toStringAsFixed(1)} A';
 
       yeniGerekce = 'Hesaplanan hat akımı ${i.toStringAsFixed(1)} A, '
           'taşıma kapasitesi $kapasiteMetni değerindedir. '
-          'Gerilim düşümü %${du!.toStringAsFixed(2)} ile '
+          'Gerilim düşümü %${du.toStringAsFixed(2)} ile '
           '%$izinVerilenDusum sınırı içerisindedir.';
 
       if (kapasiteSonucu.yaklasik) {

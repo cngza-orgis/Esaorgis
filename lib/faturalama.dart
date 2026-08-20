@@ -5,15 +5,10 @@ part of 'main.dart';
 // ================================================================
 //
 // Bu dosya main.dart dosyasının PART dosyasıdır.
-//
-// main.dart içerisinde:
-//   part 'faturalama.dart';
-//
-// bulunduğu için bu dosyanın ilk satırı:
-//
+// Bu nedenle:
 //   part of 'main.dart';
 //
-// olmalıdır.
+// satırı zorunludur.
 //
 // Buradaki sınıflar:
 //   - CihazSepetiEkrani
@@ -200,6 +195,7 @@ class _CihazSepetiEkraniState extends State<CihazSepetiEkrani> {
 
     setState(() {
       kwh = total;
+
       tl = maliyet && unit > 0 ? total * unit : null;
     });
   }
@@ -333,7 +329,6 @@ class _CihazSepetiEkraniState extends State<CihazSepetiEkrani> {
             onChanged: (v) {
               setState(() {
                 maliyet = v;
-
                 if (!v) {
                   tl = null;
                 }
@@ -802,175 +797,3 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
 }
 
 // ================================================================
-// 4. FATURA ANALİZİ
-// ================================================================
-//
-// YALNIZCA:
-//   Fatura TL → yaklaşık kWh
-//
-// Bu araçta:
-//   - kWh → Fatura hesabı yoktur.
-//   - Dönem girişi yoktur.
-//   - Gün girişi yoktur.
-//   - T1 / T2 / T3 girişi yoktur.
-//   - Çevrim içi veri sorgulaması yoktur.
-//
-// Hesaplama, toplam fatura tutarı ile tüketim arasındaki
-// tanımlı oransal ilişki kullanılarak çevrim dışı
-// tahminleme yöntemiyle yapılır.
-//
-// Sonuç yaklaşık tüketim değeridir.
-// Gerçek tüketim, sayaç veya fatura üzerindeki kWh değeriyle
-// doğrulanmalıdır.
-//
-// ================================================================
-
-class FaturaAnaliziEkrani extends StatefulWidget {
-  const FaturaAnaliziEkrani({super.key});
-
-  @override
-  State<FaturaAnaliziEkrani> createState() => _FaturaAnaliziEkraniState();
-}
-
-class _FaturaAnaliziEkraniState extends State<FaturaAnaliziEkrani> {
-  final TextEditingController fatura = TextEditingController();
-
-  String tarife = 'Mesken';
-  bool analysed = false;
-  double? sonucKwh;
-  double? efektifBirim;
-  String sonucNotu = '';
-
-  // Çevrim dışı Mesken referansı.
-  // Diğer tarifeler, gerçek fatura örnekleri ile ayrı ayrı kalibre edilecektir.
-  static const double referansFaturaTl = 595.00;
-  static const double referansKwh = 184.00;
-  static const double referansToplamBirim = referansFaturaTl / referansKwh;
-
-  double _oku(TextEditingController controller) {
-    return double.tryParse(controller.text.trim().replaceAll(',', '.')) ?? 0;
-  }
-
-  void _faturadanKwh() {
-    final hedef = _oku(fatura);
-
-    if (hedef <= 0) {
-      setState(() {
-        analysed = false;
-        sonucKwh = null;
-        efektifBirim = null;
-        sonucNotu = 'Geçerli bir fatura tutarı giriniz.';
-      });
-      return;
-    }
-
-    if (tarife != 'Mesken') {
-      setState(() {
-        analysed = false;
-        sonucKwh = null;
-        efektifBirim = null;
-        sonucNotu = 'Bu tarife için çevrim dışı referans katsayısı henüz tanımlanmadı. Gerçek fatura örnekleriyle kalibrasyon tamamlandığında hesaplama etkinleştirilecektir.';
-      });
-      return;
-    }
-
-    final q = hedef / referansToplamBirim;
-
-    setState(() {
-      analysed = true;
-      sonucKwh = q;
-      efektifBirim = q > 0 ? hedef / q : null;
-      sonucNotu = 'Bu sonuç, seçilen tarife için tanımlanmış referans tüketim–tutar ilişkisi kullanılarak çevrim dışı ve oransal tahminleme yöntemiyle hesaplanmıştır. Gerçek tüketim; tarife, kademe, vergi ve diğer fatura koşullarına göre farklılık gösterebilir. Sonuç yaklaşık bir tahmindir ve gerçek fatura veya sayaç kWh değeriyle doğrulanmalıdır.';
-    });
-  }
-
-  void temizle() {
-    fatura.clear();
-    setState(() {
-      analysed = false;
-      sonucKwh = null;
-      efektifBirim = null;
-      sonucNotu = '';
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppScaffold(
-      title: 'Fatura Analizi',
-      info: true,
-      onInfo: () => bilgiPopup(
-        context,
-        'Fatura Analizi — Bilgi / Yardım',
-        'Bu araç yalnızca TL tutarından yaklaşık kWh tüketimi tahmin eder. Dönem, gün ve kWh → fatura hesabı bulunmaz. Tarife seçimi önemlidir; her tarife için ayrı çevrim dışı referans katsayısı kullanılmalıdır. Yeni tarifeler gerçek fatura örnekleriyle kalibre edilecektir. Hesaplama oransal tahminleme yöntemidir; kesin tüketim değeri olarak kullanılmamalı, gerçek sayaç/fatura değeriyle doğrulanmalıdır.',
-      ),
-      body: ScrollBody(
-        children: [
-          SectionCard(
-            title: 'Fatura Bilgileri',
-            children: [
-              Field(
-                controller: fatura,
-                label: 'Fatura tutarı (TL)',
-              ),
-              Drop(
-                label: 'Tarife',
-                value: tarife,
-                items: const [
-                  'Mesken',
-                  'Ticarethane / Diğer',
-                  'Sanayi',
-                  'Tarımsal Faaliyet',
-                ],
-                onChanged: (v) => setState(() {
-                  tarife = v!;
-                  analysed = false;
-                  sonucKwh = null;
-                }),
-              ),
-              if (tarife == 'Mesken')
-                const AdviceCard(
-                  title: 'Hesap yöntemi',
-                  text: 'Seçilen Mesken referansında toplam fatura tutarı ile tüketim arasındaki oransal ilişki kullanılır. Araç çevrim dışı çalışır.',
-                ),
-              if (tarife != 'Mesken')
-                const AdviceCard(
-                  title: 'Kalibrasyon bekliyor',
-                  text: 'Bu tarife için gerçek fatura referansı henüz tanımlanmadı. Yanlış bir katsayı üretmemek için hesaplama şimdilik devre dışıdır.',
-                ),
-              calcButton('TL → kWh HESAPLA', _faturadanKwh),
-              TextButton(
-                onPressed: analysed ? temizle : null,
-                child: const Text('TEMİZLE'),
-              ),
-            ],
-          ),
-          if (analysed && sonucKwh != null)
-            SectionCard(
-              title: 'Sonuç',
-              children: [
-                ResultCard(
-                  title: 'Tahmini tüketim',
-                  value: '${sonucKwh!.toStringAsFixed(1)} kWh',
-                  subtitle: 'Seçilen tarife için çevrim dışı oransal tahmin.',
-                  good: true,
-                  detail: sonucNotu,
-                ),
-              ],
-            ),
-          if (analysed && sonucNotu.isNotEmpty)
-            AdviceCard(
-              title: 'Bilgilendirme',
-              text: sonucNotu,
-            ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    fatura.dispose();
-    super.dispose();
-  }
-}
