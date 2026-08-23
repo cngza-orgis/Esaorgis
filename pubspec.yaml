@@ -2,10 +2,10 @@ name: esa
 description: Elektrik saha hesapları, kablo, koruma, pano, motor, GES ve saha yardımcı araçları.
 publish_to: 'none'
 
-version: 2.4.3+243
+version: 2.4.4+244
 
 environment:
-  sdk: ^3.0.0
+  sdk: '>=3.8.1 <4.0.0'
 
 dependencies:
   flutter:
