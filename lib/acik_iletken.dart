@@ -56,7 +56,7 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
 
   String? hataMesaji;
 
-  List<_AcikIletkenData> sonuclar = [];
+  List<MerkeziAcikIletken> sonuclar = [];
 
   // ==========================================================
   // AG AÇIK İLETKENLER
@@ -75,94 +75,8 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
   // olarak tanımlanmaktadır.
   // ==========================================================
 
-  static const List<_AcikIletkenData> agIletkenler = [
-    _AcikIletkenData(
-      ad: 'Rose',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 21.1,
-      kapasite: 85.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Lily',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 26.6,
-      kapasite: 110.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Pansy',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 42.4,
-      kapasite: 135.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Poppy',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 53.5,
-      kapasite: 170.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Aster',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 67.4,
-      kapasite: 210.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Phlox',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 85.0,
-      kapasite: 250.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Oxlip',
-      tipAciklama: 'Tam Alüminyum İletken',
-      kesit: 107.2,
-      kapasite: 290.0,
-    ),
-  ];
-
-  // ==========================================================
-  // OG AÇIK İLETKENLER
-  // ==========================================================
-  //
-  // OG tarafında da kullanıcıya teknik kod yerine gerçek tip
-  // adı gösterilir.
-  //
-  // Çelik özlü alüminyum iletkenlerde kullanıcı ekranında
-  // Swallow, Pigeon, Partridge ve Hawk gibi tip adları
-  // kullanılır.
-  //
-  // TEDAŞ malzeme listesinde bu tipler ayrı bir "çelik özlü
-  // örgülü alüminyum iletkenler" grubu olarak tanımlanmaktadır.
-  //
-  // Burada AWG / kcmil gösterilmez.
-  // ==========================================================
-
-  static const List<_AcikIletkenData> ogIletkenler = [
-    _AcikIletkenData(
-      ad: 'Swallow',
-      tipAciklama: 'Çelik Özlü Alüminyum İletken',
-      kesit: 31.1,
-      kapasite: 135.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Pigeon',
-      tipAciklama: 'Çelik Özlü Alüminyum İletken',
-      kesit: 99.3,
-      kapasite: 250.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Partridge',
-      tipAciklama: 'Çelik Özlü Alüminyum İletken',
-      kesit: 156.9,
-      kapasite: 330.0,
-    ),
-    _AcikIletkenData(
-      ad: 'Hawk',
-      tipAciklama: 'Çelik Özlü Alüminyum İletken',
-      kesit: 281.1,
-      kapasite: 490.0,
-    ),
-  ];
+  List<MerkeziAcikIletken> get _liste =>
+      gerilim == 'AG' ? merkeziAgAcikIletkenler : merkeziOgAcikIletkenler;
 
   // ==========================================================
   // SAYISAL FORMAT
@@ -194,13 +108,13 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
       return;
     }
 
-    final liste = gerilim == 'AG' ? agIletkenler : ogIletkenler;
+    final List<MerkeziAcikIletken> liste = _liste;
 
     // Girilen tasarım akımını karşılayan iletkenlerden,
     // hesaplanan değerin üzerindeki seçenekler gösterilir.
     final uygunlar = liste
         .where(
-          (iletken) => iletken.kapasite >= akim,
+          (iletken) => iletken.kapasiteA >= akim,
         )
         .toList();
 
@@ -215,14 +129,14 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
   // ==========================================================
 
   Widget _iletkenCard(
-    _AcikIletkenData iletken,
+    MerkeziAcikIletken iletken,
   ) {
     final akim = double.tryParse(
           akimController.text.trim().replaceAll(',', '.'),
         ) ??
         0;
 
-    final uygun = iletken.kapasite >= akim;
+    final uygun = iletken.kapasiteA >= akim;
 
     return Container(
       width: double.infinity,
@@ -279,7 +193,7 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Kesit: ${_fmtKesit(iletken.kesit)} mm²',
+                  'Kesit: ${_fmtKesit(iletken.kesitMm2)} mm²',
                   style: TextStyle(
                     color: cText().withValues(
                       alpha: .88,
@@ -300,7 +214,7 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '≈ ${_fmtAkim(iletken.kapasite)} A',
+                '≈ ${_fmtAkim(iletken.kapasiteA)} A',
                 style: TextStyle(
                   color: cIcon(),
                   fontWeight: FontWeight.bold,
@@ -344,8 +258,8 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
             'gösterir. Kullanıcı tasarım akımını girerek bu akımı '
             'karşılayabilecek standart iletken tiplerini inceleyebilir.\n\n'
             'İletken adı kullanıcı ekranında gerçek tip adıyla '
-            'gösterilir. AWG, KCMIL ve standart teknik kodlar '
-            'ana seçim ekranında kullanılmaz.\n\n'
+            'gösterilir. Alternatif kesit/birim kodları ve eski teknik '
+            'gösterim biçimleri ana seçim ekranında kullanılmaz.\n\n'
             'Kesin iletken seçimi; akım taşıma kapasitesinin yanı '
             'sıra açıklık, mekanik yükler, ortam sıcaklığı, iletken '
             'sıcaklığı, kısa devre dayanımı, gerilim düşümü, '
@@ -469,20 +383,3 @@ class _AcikIletkenEkraniState extends State<AcikIletkenEkrani> {
 // ============================================================
 // AÇIK İLETKEN VERİ MODELİ
 // ============================================================
-
-class _AcikIletkenData {
-  final String ad;
-
-  final String tipAciklama;
-
-  final double kesit;
-
-  final double kapasite;
-
-  const _AcikIletkenData({
-    required this.ad,
-    required this.tipAciklama,
-    required this.kesit,
-    required this.kapasite,
-  });
-}

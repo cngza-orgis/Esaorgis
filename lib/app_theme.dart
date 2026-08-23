@@ -17,58 +17,21 @@ Color cInputBg() => isDarkNotifier.value ? const Color(0xFF20364D) : Colors.whit
 
 
 // ================= ORTAK WIDGETLAR / YARDIMCI METOTLAR =================
-Widget uiResultCard(String title, String value, String unit) {
-  return _UiResultCard(title: title, value: value, unit: unit);
-}
-
-class _UiResultCard extends StatefulWidget {
-  final String title;
-  final String value;
-  final String unit;
-  const _UiResultCard({required this.title, required this.value, required this.unit});
-  @override State<_UiResultCard> createState() => _UiResultCardState();
-}
-
-class _UiResultCardState extends State<_UiResultCard> {
-  bool detay = false;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cCard(),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: cIcon().withValues(alpha: .28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(widget.title, style: TextStyle(color: cIcon(), fontSize: 12, fontWeight: FontWeight.w800), maxLines: 2, overflow: TextOverflow.ellipsis)),
-              TextButton(
-                onPressed: () => setState(() => detay = !detay),
-                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: Text(detay ? 'Özet' : 'Detay', style: TextStyle(color: cIcon(), fontSize: 11, fontWeight: FontWeight.w800)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(widget.value, style: TextStyle(color: cText(), fontSize: 17, fontWeight: FontWeight.w800, height: 1.2), softWrap: true),
-          if (widget.unit.isNotEmpty) ...[
-            const SizedBox(height: 3),
-            Text(widget.unit, style: TextStyle(color: cText().withValues(alpha: .72), fontSize: 12, fontWeight: FontWeight.w600, height: 1.25), softWrap: true),
-          ],
-          if (detay) ...[
-            const Divider(height: 14),
-            Text('Bu sonuç, seçilen giriş değerleriyle aracın ön hesap modelinden üretilmiştir. Kesin teknik seçim için ilgili standart/mevzuat, TEDAŞ veya dağıtım şirketi şartları, üretici teknik verileri ve saha koşulları ayrıca kontrol edilmelidir.', style: TextStyle(color: cText().withValues(alpha: .82), fontSize: 11.5, height: 1.4)),
-          ],
-        ],
-      ),
-    );
-  }
+Widget uiResultCard(
+  String title,
+  String value,
+  String unit, {
+  TechnicalResultDetails? technicalDetails,
+}) {
+  // uiResultCard ve ResultCard artık aynı ortak sonuç bileşenini kullanır.
+  // Böylece özet/detay görünümü, teknik açıklama standardı ve tema davranışı
+  // araçlar arasında farklılaşmaz.
+  return ResultCard(
+    title: title,
+    value: value,
+    subtitle: unit.isEmpty ? null : unit,
+    technicalDetails: technicalDetails,
+  );
 }
 
 InputDecoration customInputDec(String label) {
@@ -84,20 +47,21 @@ InputDecoration customInputDec(String label) {
   );
 }
 
-int standartTMSBul(double akim) {
-  const tmsler = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000];
-  return tmsler.firstWhere((val) => val >= akim, orElse: () => 4000);
+int? standartTMSBul(double akim) {
+  return esaSelectFirstStandardProtection(akim);
 }
 
 int standartKontaktorBul(double akim) {
-  const values = [9, 12, 18, 25, 32, 40, 50, 65, 80, 95, 115, 150, 185, 225, 265, 330, 400, 500];
-  return values.firstWhere((val) => val >= akim, orElse: () => 500);
+  return esaSelectFirstStandardContactor(akim);
 }
 
+/// Ortak CT ön seçim motoru.
+/// Kural: hesaplanan akıma eşit veya onu karşılayan ilk standart primer oran seçilir.
+/// Örn. 7,33 A -> 10/5 A. Bu fonksiyon tüm CT kullanan araçlarda ortak kullanılmalıdır.
 String standartAkimTrafosuBul(double akim) {
-  const primler = [20, 30, 40, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1250, 1600, 2000, 2500, 3000, 4000];
-  final c = primler.firstWhere((p) => p >= akim, orElse: () => 0);
-  return c == 0 ? 'Özel Proje' : '$c/5 A';
+  if (!akim.isFinite || akim <= 0) return 'Hesaplanamadı';
+
+  return esaSelectFirstStandardCt(akim);
 }
 
 String standartKakrBul(int sigorta, String tip) {
@@ -126,15 +90,17 @@ String formatKabloKesiti(double kesit, bool is3F) {
 }
 
 String standartKabloBulNYY(double akim, bool is3F) {
-  if (akim <= 0) return '-';
-  const kapasiteler = <int, int>{6: 36, 10: 50, 16: 68, 25: 89, 35: 111, 50: 134, 70: 171, 95: 207, 120: 239, 150: 275, 185: 314, 240: 369};
-  for (final entry in kapasiteler.entries) {
-    if (entry.value >= akim) return '${formatKabloKesiti(entry.key.toDouble(), is3F)} mm² NYY (Cu)';
-  }
-  if (is3F) return standartParalelKabloBul(akim);
-  final adet = max(1, (akim / (369 * .84)).ceil());
-  if (adet <= 12) return adet == 1 ? '1x240 mm² NYY (Cu)' : '$adet paralel × 1x240 mm² NYY (Cu)';
-  return 'Paralel kablo grubu > 12 sistem — proje bazlı tasarım gerekir';
+  if (!akim.isFinite || akim <= 0) return '-';
+
+  final sonuc = nyyTeknikUygunKesitBul(
+    akim: akim,
+    threePhase: is3F,
+    toprakHatti: false,
+    duzeltme: esaTechnicalSelectionCorrectionFactor,
+  );
+
+  if (sonuc == null || sonuc.isEmpty) return '-';
+  return sonuc.contains('NYY') ? sonuc : '$sonuc NYY (Cu)';
 }
 
 String standartBaraBul(num tms) {

@@ -519,15 +519,11 @@ class _KompFaturaTabState extends State<_KompFaturaTab> {
           ),
 
         if (hesaplandi) ...[
-          ResultCard(
-            title: 'Analiz Sonucu',
-            value: sonuc,
-            subtitle: 'Endeks hesabı ön değerlendirmedir. '
-                'Güncel mevzuat, tarife, abone grubu ve '
-                'dağıtım şirketi uygulamaları ayrıca '
-                'doğrulanmalıdır.',
-            good: sonuc.contains('UYGUN /'),
-            error: sonuc.contains('UYGUN DEĞİL'),
+          ...resultSectionCardsFromText(
+            sonuc,
+            fallbackTitle: 'Analiz Sonucu',
+            fallbackNote: 'Endeks hesabı ön değerlendirmedir. Güncel mevzuat, tarife, abone grubu ve dağıtım şirketi uygulamaları ayrıca doğrulanmalıdır.',
+            icons: const [Icons.analytics_outlined, Icons.verified_rounded],
           ),
           AdviceCard(
             title: 'Düzeltme / Onarım Önerisi',
@@ -613,7 +609,7 @@ class _KompPanoTabState extends State<_KompPanoTab> {
 
   String reaktor = 'Yok';
 
-  double pfMevcut = 0.80;
+  double pfMevcut = esaDefaultPowerFactor;
 
   double pfHedef = 0.98;
 
@@ -633,6 +629,29 @@ class _KompPanoTabState extends State<_KompPanoTab> {
   double gerekli = 0;
 
   double toplam = 0;
+
+  // Yaygın kompanzasyon kondansatörü kVAr değerleri için ön seçim kümesi.
+  // Üreticiye göre gerçek ürün adımları değişebileceğinden bu liste
+  // nihai ekipman seçimi değil, otomatik kademe tasarımında kullanılan
+  // teknik ön seçim kümesidir.
+  static const List<double> _standartKondansatorKvar = [
+    2.5,
+    5,
+    7.5,
+    10,
+    12.5,
+    15,
+    20,
+    25,
+    30,
+    40,
+    50,
+    60,
+    75,
+    100,
+    125,
+    150,
+  ];
 
   @override
   void dispose() {
@@ -710,7 +729,7 @@ class _KompPanoTabState extends State<_KompPanoTab> {
 
     final double fazA = p * 1000 / (sqrt(3) * gerilim * pfHedef);
 
-    final int anaKoruma = standartTMSBul(fazA);
+    final int? anaKoruma = standartTMSBul(fazA);
 
     final String bara = standartBaraBul(fazA);
 
@@ -723,21 +742,32 @@ class _KompPanoTabState extends State<_KompPanoTab> {
         ? ctOran.text
         : 'Yaklaşık ${standartAkimTrafosuBul(fazA)}';
 
+    final List<double> otomatikKademeler = _otomatikKademeListesi(
+      int.parse(kademe),
+      hedefToplam,
+    );
+
+    final bool manuelSirali = hasManual && _katmanlarSiraliVePozitif(girilen);
     final List<double> kademeList = hasManual
         ? girilen
-        : [
-            for (int i = 0; i < int.parse(kademe); i++)
-              _otomatikKademe(
-                i,
-                int.parse(kademe),
-                hedefToplam,
-              ),
-          ];
+        : otomatikKademeler;
+
+    final double tasarimToplami = kademeList.fold<double>(
+      0,
+      (a, b) => a + b,
+    );
 
     final double hedefKontrol =
-        hasManual ? (gerekli > 0 ? toplam / gerekli : 1.0) : 1.0;
+        gerekli > 0 ? tasarimToplami / gerekli : 1.0;
 
-    final String risk = hedefKontrol > 1.20
+    final bool kademeYetersiz = !hasManual &&
+        kademeList.isEmpty;
+
+    final String risk = !manuelSirali && hasManual
+        ? 'Manuel kademeler artan sırada değil'
+        : kademeYetersiz
+            ? 'Seçilen kademe sayısı / standart kVAr aralığı ile otomatik tasarım oluşturulamadı'
+            : hedefKontrol > 1.20
         ? 'Aşırı kompanzasyon riski'
         : hedefKontrol < 0.80
             ? 'Kompanzasyon kapasitesi yetersiz'
@@ -745,13 +775,13 @@ class _KompPanoTabState extends State<_KompPanoTab> {
 
     setState(() {
       sonuc = 'Önerilen toplam: '
-          '${hedefToplam.toStringAsFixed(1)} kVAr\n'
+          '${tasarimToplami.toStringAsFixed(1)} kVAr\n'
           'Gerekli teorik güç: '
           '${gerekli.toStringAsFixed(1)} kVAr\n'
           'Ana akım: '
           '${fazA.toStringAsFixed(1)} A\n'
           'Ana koruma ön seçimi: '
-          '$anaKoruma A\n'
+          '${anaKoruma == null ? 'uygun standart değer bulunamadı' : '$anaKoruma A'}\n'
           'AG ana bara ön seçimi: '
           '$bara\n'
           'AG besleme kablosu ön seçimi: '
@@ -767,7 +797,7 @@ class _KompPanoTabState extends State<_KompPanoTab> {
             stageA,
           );
 
-          final int kademeKoruma = standartTMSBul(
+          final int? kademeKoruma = standartTMSBul(
             stageA * 1.5,
           );
 
@@ -780,7 +810,7 @@ class _KompPanoTabState extends State<_KompPanoTab> {
               'kontaktör ön seçimi '
               '$kontaktor A | '
               'kademe koruması ön seçimi '
-              '$kademeKoruma A | '
+              '${kademeKoruma == null ? 'uygun standart değer bulunamadı' : '$kademeKoruma A'} | '
               '$reaktorBilgi';
         },
       ).join('\n');
@@ -790,8 +820,13 @@ class _KompPanoTabState extends State<_KompPanoTab> {
           'Harmonik durumu: $harmonik\n'
           'Reaktör yaklaşımı: $reaktor\n'
           'Durum: $risk\n\n'
-          'Kademe yapısı:\n'
+          'Kademe yapısı (artan):\n'
           '$kademeDetay\n\n'
+          'Otomatik tasarımda eşit kademe kullanılmaz; '
+          'K1 < K2 < K3 ... olacak şekilde standart kVAr '
+          'ön seçimleri arasından hedef toplam güce en yakın '
+          'kombinasyon aranır. Manuel girişte aynı artan kademe '
+          'kuralı ayrıca kontrol edilir.\n\n'
           'Tasarım sırası: Ana giriş → koruma → '
           'ölçü/CT → kompanzasyon rölesi/analizör → '
           'kademe korumaları → kapasitif yüke uygun '
@@ -803,26 +838,75 @@ class _KompPanoTabState extends State<_KompPanoTab> {
     });
   }
 
-  double _otomatikKademe(
-    int i,
-    int n,
-    double total,
-  ) {
-    final List<double> oran = n == 6
-        ? [
-            0.05,
-            0.10,
-            0.10,
-            0.15,
-            0.25,
-            0.35,
-          ]
-        : List<double>.filled(
-            n,
-            1 / n,
-          );
+  bool _katmanlarSiraliVePozitif(List<double> values) {
+    if (values.isEmpty || values.any((v) => v <= 0)) {
+      return false;
+    }
 
-    return total * oran[i];
+    for (int i = 1; i < values.length; i++) {
+      if (values[i] <= values[i - 1]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  List<double> _otomatikKademeListesi(int n, double total) {
+    if (n <= 0 || total <= 0 || n > _standartKondansatorKvar.length) {
+      return const [];
+    }
+
+    // Yaklaşık hedefe en yakın, strictly-increasing standart kVAr
+    // kombinasyonunu bulmak için beam-search kullanılır. Böylece aynı
+    // kVAr iki farklı kademede otomatik olarak tekrarlanmaz.
+    final List<List<double>> ilk = [for (final v in _standartKondansatorKvar) [v]];
+    List<List<double>> adaylar = ilk;
+
+    for (int adim = 1; adim < n; adim++) {
+      final List<List<double>> next = [];
+
+      for (final aday in adaylar) {
+        final double last = aday.last;
+        for (final v in _standartKondansatorKvar) {
+          if (v <= last) {
+            continue;
+          }
+
+          next.add([...aday, v]);
+        }
+      }
+
+      next.sort((a, b) {
+        double sa = a.fold(0, (x, y) => x + y);
+        double sb = b.fold(0, (x, y) => x + y);
+        final da = (sa - total).abs();
+        final db = (sb - total).abs();
+        return da.compareTo(db);
+      });
+
+      // Tam kombinasyon uzayı büyümesin; en iyi adayları koru.
+      adaylar = next.take(120).toList();
+      if (adaylar.isEmpty) {
+        return const [];
+      }
+    }
+
+    adaylar.sort((a, b) {
+      final sa = a.fold<double>(0, (x, y) => x + y);
+      final sb = b.fold<double>(0, (x, y) => x + y);
+      final da = (sa - total).abs();
+      final db = (sb - total).abs();
+      if (da != db) {
+        return da.compareTo(db);
+      }
+      // Aynı yaklaşıklıkta daha kademeli dağılımı tercih et.
+      final wa = a.asMap().entries.fold<double>(0, (sum, e) => sum + (e.key + 1) * e.value);
+      final wb = b.asMap().entries.fold<double>(0, (sum, e) => sum + (e.key + 1) * e.value);
+      return wa.compareTo(wb);
+    });
+
+    return adaylar.first;
   }
 
   Widget _kademeSatiri(
@@ -1435,13 +1519,8 @@ class _KompMevcutSistemAnaliziEkraniState
     extends State<KompMevcutSistemAnaliziEkrani> {
   final sistemGucu = TextEditingController();
 
-  final cosMevcut = TextEditingController(
-    text: '0.80',
-  );
-
-  final cosHedef = TextEditingController(
-    text: '0.95',
-  );
+  double cosMevcut = esaDefaultPowerFactor;
+  double cosHedef = 0.95;
 
   final ctOran = TextEditingController();
 
@@ -1463,8 +1542,6 @@ class _KompMevcutSistemAnaliziEkraniState
   @override
   void dispose() {
     sistemGucu.dispose();
-    cosMevcut.dispose();
-    cosHedef.dispose();
     ctOran.dispose();
 
     for (final k in kademeler) {
@@ -1507,9 +1584,9 @@ class _KompMevcutSistemAnaliziEkraniState
   void analizEt() {
     final double p = _v(sistemGucu);
 
-    final double pf = _v(cosMevcut);
+    final double pf = cosMevcut;
 
-    final double hedef = _v(cosHedef);
+    final double hedef = cosHedef;
 
     final double ct = _v(ctOran);
 
@@ -1659,13 +1736,57 @@ class _KompMevcutSistemAnaliziEkraniState
                 ),
               ),
               twoCol(
-                Field(
-                  controller: cosMevcut,
+                Drop(
                   label: 'Mevcut cosφ',
+                  value: cosMevcut.toStringAsFixed(2),
+                  items: const [
+                    '0.80',
+                    '0.82',
+                    '0.84',
+                    '0.86',
+                    '0.88',
+                    '0.90',
+                    '0.92',
+                    '0.94',
+                    '0.95',
+                    '0.96',
+                    '0.97',
+                    '0.98',
+                    '0.99',
+                  ],
+                  onChanged: (v) {
+                    if (v == null) {
+                      return;
+                    }
+                    setState(() {
+                      cosMevcut = double.parse(v);
+                      analizEdildi = false;
+                    });
+                  },
                 ),
-                Field(
-                  controller: cosHedef,
+                Drop(
                   label: 'Hedef cosφ',
+                  value: cosHedef.toStringAsFixed(2),
+                  items: const [
+                    '0.90',
+                    '0.92',
+                    '0.94',
+                    '0.95',
+                    '0.96',
+                    '0.97',
+                    '0.98',
+                    '0.99',
+                    '1.00',
+                  ],
+                  onChanged: (v) {
+                    if (v == null) {
+                      return;
+                    }
+                    setState(() {
+                      cosHedef = double.parse(v);
+                      analizEdildi = false;
+                    });
+                  },
                 ),
               ),
               twoCol(
@@ -1757,17 +1878,11 @@ class _KompMevcutSistemAnaliziEkraniState
             ],
           ),
           if (analizEdildi) ...[
-            ResultCard(
-              title: 'Analiz Sonucu',
-              value: sonuc,
-              subtitle: 'Sonuç kesin kabul/onay kararı değildir; '
-                  'saha ölçümü ve proje/şartname kontrolü gerekir.',
-              good: sonuc.startsWith(
-                'ÖN',
-              ),
-              error: sonuc.startsWith(
-                'UYGUN DEĞİL',
-              ),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'Analiz Sonucu',
+              fallbackNote: 'Sonuç kesin kabul/onay kararı değildir; saha ölçümü ve proje/şartname kontrolü gerekir.',
+              icons: const [Icons.analytics_outlined, Icons.settings_rounded],
             ),
             SectionCard(
               title: 'Hesap / Teşhis Özeti',

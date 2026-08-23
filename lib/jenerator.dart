@@ -67,7 +67,7 @@ class _JeneratorSecimiEkraniState extends State<JeneratorSecimiEkrani> {
                   Column(
                     children: [
                       uiResultCard(t('İhtiyaç Duyulan Güç', 'Required Power'), hIhtiyac.toStringAsFixed(1), 'kVA'),
-                      uiResultCard(t('Önerilen Jeneratör', 'Recommended Gen.'), oJenerator.toString(), 'kVA'),
+                      uiResultCard(t('Ön Seçim Jeneratör', 'Preselected Gen.'), oJenerator.toString(), 'kVA'),
                       const SizedBox(height: 10),
                       if (form.isNotEmpty) Text(form, style: TextStyle(fontSize: 12, color: cText()), textAlign: TextAlign.center)
                     ],

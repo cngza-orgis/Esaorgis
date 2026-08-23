@@ -3,27 +3,29 @@ part of 'main.dart';
 class OgGereksinimEkrani extends StatefulWidget { const OgGereksinimEkrani({super.key}); @override State<OgGereksinimEkrani> createState()=>_OgGereksinimEkraniState(); }
 class _OgGereksinimEkraniState extends State<OgGereksinimEkrani>{
   final power=TextEditingController(text:'320');
-  String olcu='AG', gerilimOg='31500'; bool sonucVar=false; String sonuc='';
+  String olcu='AG', gerilimOg=esaOgVoltageOptions.first; bool sonucVar=false; String sonuc='';
+  double pf = esaDefaultPowerFactor;
   @override void dispose(){power.dispose();super.dispose();}
   void hesapla(){
     final p=double.tryParse(power.text.replaceAll(',', '.'))??0;
     if(p<=0){setState(()=>sonucVar=false);return;}
-    final kva=p/0.95;
+    final kva=esaKvaFromKw(p,pf);
     final og=olcu=='OG';
     final ogAkimi=kva*1000/(sqrt(3)*double.parse(gerilimOg));
-    final ct=og ? standartAkimTrafosuBul(ogAkimi*1.25) : '-';
+    final ct=og ? standartAkimTrafosuBul(ogAkimi) : '-';
     final hucre=og ? 'Giriş Hücresi + Ölçü Hücresi + gerekli çıkış/trafo koruma hücresi' : 'Ölçü hücresi eklenmez; AG ölçüm düzeni değerlendirilir.';
-    setState(()=>sonuc='Talep gücü: ${p.toStringAsFixed(1)} kW\nYaklaşık görünür güç: ${kva.toStringAsFixed(1)} kVA\n\nÖlçüm tipi: ${og?'OG':'AG'}\nOG bağlantı değerlendirmesi: ${og?'GEREKİYOR':'Bu girişlere göre AG tarafı öncelikli'}\n\nHücre düzeni: $hucre\nOG gerilimi: ${gerilimOg} V\nOG tarafı hesaplanan akım: ${ogAkimi.toStringAsFixed(2)} A\nAkım trafosu ön referansı: $ct\nGerilim trafosu: ${og?'Ölçü/koruma fonksiyonuna göre uygun sınıf ve oran seçilmelidir.':'-'}\n\nKesin hücre fonksiyonları, kısa devre dayanımı, ölçü sınıfı ve dağıtım şirketi bağlantı görüşü onaylı projeye göre belirlenmelidir.');
+    setState(()=>sonuc='Talep gücü: ${p.toStringAsFixed(1)} kW\nYaklaşık görünür güç: ${kva.toStringAsFixed(1)} kVA (cosφ=${pf.toStringAsFixed(2)})\n\nÖlçüm tipi: ${og?'OG':'AG'}\nOG bağlantı değerlendirmesi: ${og?'GEREKİYOR':'Bu girişlere göre AG tarafı öncelikli'}\n\nHücre düzeni: $hucre\nOG gerilimi: ${gerilimOg} V\nOG tarafı hesaplanan akım: ${ogAkimi.toStringAsFixed(2)} A\nAkım trafosu ön referansı: $ct\nGerilim trafosu: ${og?'Ölçü/koruma fonksiyonuna göre uygun sınıf ve oran seçilmelidir.':'-'}\n\nKesin hücre fonksiyonları, kısa devre dayanımı, ölçü sınıfı ve dağıtım şirketi bağlantı görüşü onaylı projeye göre belirlenmelidir.');
     sonucVar=true;
   }
   @override Widget build(BuildContext context)=>AppScaffold(title:'OG Hücre / Ölçü Gereksinimi',info:true,onInfo:()=>bilgiPopup(context,'OG Hücre / Ölçü Gereksinimi','Ölçüm tipi ve talep gücünden hareketle OG ölçü hücresi ile giriş/çıkış/trafo koruma fonksiyonlarını ön değerlendirme olarak gösterir. Kesin bağlantı şekli dağıtım şirketinin bağlantı görüşü ve onaylı projeye göre belirlenir.'),body:ScrollBody(children:[
     SectionCard(title:'Tesis Bilgileri',children:[
       Field(controller:power,label:'Talep gücü (kW)'),
       Drop(label:'Ölçüm Tipi (Faturaya Esas)',value:olcu,items:const ['AG','OG'],onChanged:(v)=>setState((){olcu=v!;sonucVar=false;})),
-      Drop(label:'OG Gerilimi',value:gerilimOg,items:const ['31500','33000','34500'],onChanged:(v)=>setState((){gerilimOg=v!;sonucVar=false;})),
+      Drop(label:'OG Gerilimi',value:gerilimOg,items:esaOgVoltageOptions,onChanged:(v)=>setState((){gerilimOg=v!;sonucVar=false;})),
+      Drop(label:'Güç Faktörü (cosφ)',value:pf.toStringAsFixed(2),items:const ['0.80','0.85','0.90','0.95','0.98','1.00'],onChanged:(v)=>setState((){pf=double.tryParse(v??'')??esaDefaultPowerFactor;sonucVar=false;})),
       calcButton('GEREKSİNİMLERİ DEĞERLENDİR',hesapla),
     ]),
-    if(sonucVar) SectionCard(title:'Teknik sonuç',children:[Text(sonuc,style:TextStyle(color:cText(),height:1.5,fontWeight:FontWeight.w600))]),
+    if(sonucVar) ...[...resultSectionCardsFromText(sonuc, fallbackTitle:'Teknik sonuç', fallbackNote:'Sonuç ön değerlendirmedir; seçilen ekipman ve bağlantı koşulları proje/şartname/üretici verileriyle kesinleştirilmelidir.', icons: const [Icons.electrical_services_outlined, Icons.verified_outlined])],
     const AdviceCard(title:'Kesinlik uyarısı',text:'Güç tek başına hücre sayısını, CT/VT oranını veya koruma fonksiyonlarını kesinleştirmez. Bağlantı görüşü, kısa devre seviyesi, tesis topolojisi, ölçü sınıfı ve güncel dağıtım şirketi şartları ayrıca kontrol edilmelidir.',error:true),
   ]));
 }
@@ -41,7 +43,7 @@ class _AnaPanoSecimiEkraniState extends State<AnaPanoSecimiEkrani> {
   String gerilimTipi = 'Trifaze';
   String aboneGrubu = 'Diğer';
   bool teorikMonofaze = false;
-  double pf = 0.80;
+  double pf = esaDefaultPowerFactor;
   
   double akim = 0;
   int cikisTms = 0;
@@ -72,8 +74,8 @@ class _AnaPanoSecimiEkraniState extends State<AnaPanoSecimiEkrani> {
         : "";
     
     if (gerilimTipi == 'Monofaze' && aboneGrubu == 'Mesken' && p > 21 && !teorikMonofaze) { setState(() { hesaplandi=false; hataMesaji='Mesken abonelerinde 21 kW üzeri monofaze seçim uygun değildir. Trifaze seçin veya teorik hesap onayını işaretleyin.'; }); return; }
-    double i = (gerilimTipi == 'Trifaze') ? (p * 1000) / (sqrt(3) * 400 * pf) : (p * 1000) / (231 * pf);
-    final List<int> standartlar = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000];
+    double i = (gerilimTipi == 'Trifaze') ? esaThreePhaseCurrentFromKw(p, esaAgThreePhaseVoltage, pf) : esaSinglePhaseCurrentFromKw(p, esaAgSinglePhaseVoltage, pf);
+    final List<int> standartlar = esaStandardProtectionRatings;
     
     int outFuse = standartlar.firstWhere((val) => val >= i, orElse: () => 4000);
     if (outFuse < 16) outFuse = 16;
@@ -135,7 +137,7 @@ class _AnaPanoSecimiEkraniState extends State<AnaPanoSecimiEkrani> {
                       uiResultCard(t('Çekilen Akım', 'Drawn Current'), akim.toStringAsFixed(2), 'A'),
                       uiResultCard(t('Giriş Sigorta / TMŞ (Selektif)', 'Input Fuse / MCCB (Selective)'), girisTms.toString(), 'A'),
                       uiResultCard(t('Çıkış Sigorta / TMŞ (Selektif)', 'Output Fuse / MCCB (Selective)'), cikisTms.toString(), 'A'),
-                      uiResultCard(t('Önerilen Kablo Kesiti', 'Recommended Cable Section'), kabloKesiti, ''),
+                      uiResultCard(t('Ön Seçim Kablo Kesiti', 'Preselected Cable Section'), kabloKesiti, ''),
                       uiResultCard(t('Akım Trafosu', 'Current Transformer'), akimTrafosu, ''),
                       uiResultCard(t('Giriş Kaçak Akım Koruması (KAKR)', 'Input Leakage Current Prot.'), girisKakr, ''),
                       uiResultCard(t('Çıkış Kaçak Akım Koruması (KAKR)', 'Output Leakage Current Prot.'), cikisKakr, ''),
@@ -174,7 +176,7 @@ class OgTrafoStandartPanoEkrani extends StatefulWidget {
 }
 
 class _OgTrafoStandartPanoEkraniState extends State<OgTrafoStandartPanoEkrani>{
-  String kva='100', gerilim='400', trafoTipi='Hermetik', sogutma='ONAN', sargi='Bakır', grup='Dyn11';
+  String kva='100', gerilim=esaAgThreePhaseVoltage.toStringAsFixed(0), trafoTipi='Hermetik', sogutma='ONAN', sargi='Bakır', grup='Dyn11';
   bool al=false; String? sonuc;
   final std=const ['50','100','160','200','250','315','400','500','630','800','1000','1250','1600','2000','2500'];
   TrafoReferans? get ref => trafoBul(int.parse(kva));
@@ -183,7 +185,7 @@ class _OgTrafoStandartPanoEkraniState extends State<OgTrafoStandartPanoEkrani>{
     final i=s*1000/(sqrt(3)*voltage), r=ref;
     final cable=al?'Alüminyum AG kablo sistemi — proje ve döşeme şartına göre ayrıca boyutlandırılmalı':(r?.agAnaKabloYerAlti??standartKabloBulNYY(i,true));
     final bara=al?'Alüminyum bara — sürekli akım/kısa devre hesabı ile seçilmeli':(r?.agBara??standartBaraBul(i));
-    final koruma=r?.anaKorumaReferansi??'${standartTMSBul(i)} A sınıfı ön referans';
+    final koruma=r?.anaKorumaReferansi ?? (standartTMSBul(i)==null ? 'Hesaplanan akımı karşılayan standart koruma bulunamadı' : '${standartTMSBul(i)} A sınıfı ön referans');
     final ct=i>800?standartAkimTrafosuBul(i):'Ölçü şekline göre CT değerlendirmesi';
     setState(()=>sonuc='Trafo gücü: ${fmt2(s)} kVA\nAG tarafı anma akımı: ${fmt2(i)} A @ ${fmt2(voltage)} V\nTrafo tipi: $trafoTipi\nSoğutma: $sogutma\nSargı: $sargi\nBağlantı grubu: $grup\nAG ana kablo referansı — yeraltı: $cable\nAG ana kablo referansı — hava: ${r?.agAnaKabloHava??'Tablo verisi yok'}\nAG ana bara referansı: $bara\nAna koruma referansı: $koruma\nTermik ayar referansı: ${r?.termikAyarReferansi??'Proje ile belirlenmeli'}\nAkım trafosu: $ct');
   }
@@ -195,13 +197,13 @@ class _OgTrafoStandartPanoEkraniState extends State<OgTrafoStandartPanoEkrani>{
   @override Widget build(BuildContext context)=>AppScaffold(title:'OG Trafo Standart Pano',info:true,onInfo:()=>bilgiPopup(context,'OG Trafo Standart Pano','Trafo gücünden AG pano ön malzeme listesini ve seçilen trafonun temel teknik özelliklerini tek araçta gösterir. Trafo tipi, sargı, soğutma ve bağlantı grubu kullanıcı tarafından seçilir. Yağ miktarı, ağırlık ve üreticiye bağlı değerler kesin olarak üretici teknik föyünden doğrulanmalıdır.'),body:ScrollBody(children:[
     SectionCard(title:'Trafo / AG Çıkış',children:[
       Drop(label:'Trafo Gücü (kVA)',value:kva,items:std,onChanged:(v)=>setState(()=>kva=v!)),
-      twoCol(Drop(label:'AG Gerilimi (V)',value:gerilim,items:const ['400','415'],onChanged:(v)=>setState(()=>gerilim=v!)),Drop(label:'Trafo Tipi',value:trafoTipi,items:const ['Hermetik','Kuru Tip','Yağlı Tip'],onChanged:(v)=>setState(()=>trafoTipi=v!))),
+      twoCol(Drop(label:'AG Gerilimi (V)',value:gerilim,items:esaAcVoltageOptions,onChanged:(v)=>setState(()=>gerilim=v!)),Drop(label:'Trafo Tipi',value:trafoTipi,items:const ['Hermetik','Kuru Tip','Yağlı Tip'],onChanged:(v)=>setState(()=>trafoTipi=v!))),
       twoCol(Drop(label:'Soğutma',value:sogutma,items:const ['ONAN','ONAF','AN'],onChanged:(v)=>setState(()=>sogutma=v!)),Drop(label:'Sargı Malzemesi',value:sargi,items:const ['Bakır','Alüminyum'],onChanged:(v)=>setState(()=>sargi=v!))),
       Drop(label:'Bağlantı Grubu',value:grup,items:const ['Dyn11','Dyn5','Yyn0','Diğer / Üreticiye göre'],onChanged:(v)=>setState(()=>grup=v!)),
       Drop(label:'AG İletken',value:al?'Alüminyum':'Bakır',items:const ['Bakır','Alüminyum'],onChanged:(v)=>setState(()=>al=v=='Alüminyum')),
       Row(children:[Expanded(child:calcButton('PANOYU HESAPLA',hesapla)),const SizedBox(width:10),Expanded(child:OutlinedButton(onPressed:teknikBilgiyiGoster,child:const Text('TEKNİK BİLGİLERİ GÖSTER')))]),
     ]),
-    if(sonuc!=null)SectionCard(title:'Sıralı Ön Malzeme / Teknik Sonuç',children:[Text(sonuc!,style:TextStyle(color:cText(),fontSize:13,height:1.5))]),
+    if(sonuc!=null) ...[...resultSectionCardsFromText(sonuc!, fallbackTitle:'Sıralı Ön Malzeme / Teknik Sonuç', fallbackNote:'Trafo ve pano malzemeleri ön seçimdir; üretici teknik föyü, kısa devre dayanımı, bağlantı görüşü ve onaylı proje ile doğrulanmalıdır.', icons: const [Icons.inventory_2_outlined, Icons.electrical_services_outlined, Icons.verified_outlined])],
     AdviceCard(title:'Bilgi / Yardım',text:'Trafo gücü seçildiğinde AG anma akımı, pano ana kablo/bara ve koruma ön referansları hesaplanır. Teknik bilgiler bölümünde trafo tipi, soğutma, sargı ve bağlantı grubu gösterilir. Yağ miktarı ve ağırlık gibi üreticiye özgü değerler kesin olarak marka/model teknik föyünden alınmalıdır. Kısa devre empedansı, kayıplar, sıcaklık artışı, izolasyon seviyesi, koruma koordinasyonu ve saha koşulları ayrıca doğrulanmalıdır.'),
   ]));
 }

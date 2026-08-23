@@ -25,7 +25,7 @@ class _AydinlatmaHesabiEkraniState extends State<AydinlatmaHesabiEkrani>{
       ResultCard(title:'Oda indeksi (k)',value:k.toStringAsFixed(2)),
       ResultCard(title:'Yaklaşık kullanım faktörü',value:kf.toStringAsFixed(3)),
       ResultCard(title:'Gerekli toplam ışık akısı',value:'${af.toStringAsFixed(0)} lm'),
-      ResultCard(title:'Önerilen armatür adedi',value:'$adet adet',good:true),
+      ResultCard(title:'Ön Seçim Armatür Adedi',value:'$adet adet',good:true),
       ResultCard(title:'Kurulu aydınlatma gücü',value:'${toplamW.toStringAsFixed(0)} W'),
     ],
     const AdviceCard(title:'Teknik uyarı',text:'Bu sonuç bir ön tasarımdır. Armatür dağılımı, kamaşma, düzgünlük, bakım faktörü, çalışma düzlemi, acil aydınlatma, yangın/kaçış yolları ve üretici fotometrik verileri gerçek projede ayrıca kontrol edilmelidir.'),

@@ -79,7 +79,7 @@ void _hakkindaPopup(BuildContext context) {
             'hesaplamalar sahada uygulanabilirlik anlamına gelmez.\n\n'
             'Tüm araçlar çevrimdışı çalışır; internet bağlantısı veya kullanıcı '
             'izni gerektirmez.\n\n'
-            'Sürüm 2.4.2\n\n' +
+            'Sürüm 2.4.4\n\n' +
         teknikKaynakNotu,
   );
 }
@@ -177,7 +177,9 @@ class _AnaMenuState extends State<AnaMenu> {
   // ==========================================================
   // ANA ARAÇLAR
   //
-  // 8 ana grup + 9. hücrede Teknik Bilgiler
+  // Ana araç grupları.
+  // Teknik Bilgiler, teknik kütüphaneye doğrudan erişim için
+  // ana menüde görünür tutulur.
   // ==========================================================
 
   static final List<_Arac> araclar = [
@@ -221,6 +223,11 @@ class _AnaMenuState extends State<AnaMenu> {
       Icons.receipt_long_rounded,
       FaturalamaMenu(),
     ),
+    const _Arac(
+      'Teknik Bilgiler',
+      Icons.menu_book_rounded,
+      TeknikBilgilerEkrani(),
+    ),
   ];
 
   // ==========================================================
@@ -254,73 +261,79 @@ class _AnaMenuState extends State<AnaMenu> {
                     child: Column(
                       children: [
                         // ==================================================
-                        // 3 x 3 ANA IZGARA
+                        // ANA ARAÇ IZGARASI
                         //
-                        // 1-8 : Ana araç grupları
-                        // 9   : Teknik Bilgiler
+                        // 3 sütun korunur. Son satırda tek kart kaldığında
+                        // otomatik yatay merkezleme uygulanır.
                         // ==================================================
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            const spacing = 8.0;
+                            const columns = 3;
+                            final cardWidth = (constraints.maxWidth -
+                                    spacing * (columns - 1)) /
+                                columns;
+                            final aspect = cardWidth < 105
+                                ? 0.94
+                                : cardWidth < 125
+                                    ? 1.02
+                                    : 1.08;
 
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: 9,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 1.08,
-                          ),
-                          itemBuilder: (
-                            context,
-                            index,
-                          ) {
-                            if (index < araclar.length) {
-                              final arac = araclar[index];
-
-                              return _AracKarti(
-                                arac: arac,
-                                isDark: isDark,
-                                onTap: () async {
-                                  await Navigator.push(
-                                    context,
-                                    materialRoute(
-                                      arac.page,
+                            if (araclar.length % columns == 1) {
+                              final fullRows = araclar.length - 1;
+                              return Column(
+                                children: [
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: fullRows,
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: columns,
+                                      crossAxisSpacing: spacing,
+                                      mainAxisSpacing: spacing,
+                                      childAspectRatio: aspect,
                                     ),
-                                  );
-
-                                  if (!mounted) return;
-
-                                  setState(() {
-                                    _sahaNotuIndex = (_sahaNotuIndex + 1) %
-                                        _sahaNotlari.length;
-                                  });
-                                },
+                                    itemBuilder: (context, index) =>
+                                        _buildAracKarti(
+                                      context,
+                                      araclar[index],
+                                      isDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: spacing),
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: cardWidth,
+                                      child: _buildAracKarti(
+                                        context,
+                                        araclar.last,
+                                        isDark,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               );
                             }
 
-                            // ==================================================
-                            // 3. SÜTUN / 3. SATIR
-                            // TEKNİK BİLGİLER
-                            // ==================================================
-
-                            return _TeknikBilgilerKarti(
-                              isDark: isDark,
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  materialRoute(
-                                    const TeknikBilgilerEkrani(),
-                                  ),
-                                );
-
-                                if (!mounted) return;
-
-                                setState(() {
-                                  _sahaNotuIndex = (_sahaNotuIndex + 1) %
-                                      _sahaNotlari.length;
-                                });
-                              },
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: araclar.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                crossAxisSpacing: spacing,
+                                mainAxisSpacing: spacing,
+                                childAspectRatio: aspect,
+                              ),
+                              itemBuilder: (context, index) => _buildAracKarti(
+                                context,
+                                araclar[index],
+                                isDark,
+                              ),
                             );
                           },
                         ),
@@ -354,6 +367,29 @@ class _AnaMenuState extends State<AnaMenu> {
             ),
           ),
         );
+      },
+    );
+  }
+
+  Widget _buildAracKarti(
+    BuildContext context,
+    _Arac arac,
+    bool isDark,
+  ) {
+    return _AracKarti(
+      arac: arac,
+      isDark: isDark,
+      onTap: () async {
+        await Navigator.push(
+          context,
+          materialRoute(arac.page),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _sahaNotuIndex = (_sahaNotuIndex + 1) % _sahaNotlari.length;
+        });
       },
     );
   }
@@ -471,7 +507,7 @@ class _AnaMenuState extends State<AnaMenu> {
                     height: 2,
                   ),
                   Text(
-                    'Sürüm 2.4.2',
+                    'Sürüm 2.4.4',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -489,37 +525,6 @@ class _AnaMenuState extends State<AnaMenu> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ============================================================
-// TEKNİK BİLGİLER KARTI
-//
-// Ekranın 3 x 3 gridindeki 9. kart.
-// TeknikBilgilerEkrani artık teknik_bilgiler.dart dosyasından
-// gelir. Burada tekrar tanımlanmaz.
-// ============================================================
-
-class _TeknikBilgilerKarti extends StatelessWidget {
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _TeknikBilgilerKarti({
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _AracKarti(
-      arac: const _Arac(
-        'Teknik Bilgiler',
-        Icons.menu_book_rounded,
-        TeknikBilgilerEkrani(),
-      ),
-      isDark: isDark,
-      onTap: onTap,
     );
   }
 }
@@ -741,26 +746,36 @@ class SubMenu extends StatelessWidget {
             10,
             10,
           ),
-          child: GridView.builder(
-            physics: const BouncingScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 9,
-              mainAxisSpacing: 9,
-              childAspectRatio: 0.86,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 9.0;
+              final w = (constraints.maxWidth - gap * 2) / 3;
+              final aspect = w < 105
+                  ? 0.72
+                  : w < 125
+                      ? 0.80
+                      : 0.86;
 
-              return _AltMenuKarti(
-                item: item,
-                onTap: () => Navigator.push(
-                  context,
-                  materialRoute(
-                    item.page,
-                  ),
+              return GridView.builder(
+                physics: const BouncingScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: gap,
+                  mainAxisSpacing: gap,
+                  childAspectRatio: aspect,
                 ),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+
+                  return _AltMenuKarti(
+                    item: item,
+                    onTap: () => Navigator.push(
+                      context,
+                      materialRoute(item.page),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -955,18 +970,6 @@ class HatSebekeMenu extends StatelessWidget {
           ),
           Icons.lightbulb_rounded,
           const AydinlatmaHesabiEkrani(),
-        ),
-        MenuItemData(
-          t(
-            'Şebeke / ENH Teknik Rehberi',
-            '',
-          ),
-          t(
-            'AG, OG ve müşterek şebekelerde uygun direk, box ve tesis elemanlarını teknik-fiziki bilgilerle incele',
-            '',
-          ),
-          Icons.account_tree_rounded,
-          const DagitimSebekeEkrani(),
         ),
         MenuItemData(
           t(
@@ -1201,40 +1204,46 @@ class GesMenu extends StatelessWidget {
       ),
       items: [
         MenuItemData(
-          t(
-            'Otomatik Tasarım',
-            '',
-          ),
-          t(
-            'Otomatik GES hesabı',
-            '',
-          ),
+          'GES Sistem Tasarımı',
+          'Sistem tipi, AC/DC yapı ve genel ön tasarım',
           Icons.auto_awesome,
           const GesOtomatikEkrani(),
         ),
         MenuItemData(
-          t(
-            'Manuel Sistem Analizi',
-            '',
-          ),
-          t(
-            'Panel, akü ve inverter uyumluluğu',
-            '',
-          ),
-          Icons.query_stats,
+          'GES Manuel Sistem Analizi',
+          'Mevcut panel, akü ve inverter sistemini kontrol eder',
+          Icons.fact_check_outlined,
           const GesManuelEkrani(),
         ),
         MenuItemData(
-          t(
-            'Çatı Alanından Tasarım',
-            '',
-          ),
-          t(
-            'En × boy alanından panel ve güç ön hesabı',
-            '',
-          ),
+          'GES String Tasarımı',
+          'Panel seri/paralel ve DC gerilim ön hesabı',
+          Icons.account_tree_rounded,
+          const GesStringTasarimEkrani(),
+        ),
+        MenuItemData(
+          'GES İnverter Analizi',
+          'AC/DC güç, gerilim, akım ve cosφ analizi',
+          Icons.power_rounded,
+          const GesInverterAnaliziEkrani(),
+        ),
+        MenuItemData(
+          'GES Çatı Tasarımı',
+          'Çatı ölçülerinden panel ve güç ön hesabı',
           Icons.roofing,
           const GesCatiTasarimEkrani(),
+        ),
+        MenuItemData(
+          'GES Tarımsal Sistem Tasarımı',
+          'Alıcı seçimi ile tarımsal yük profili ve ön tasarım',
+          Icons.water_drop_rounded,
+          const GesTicarimTasarimEkrani(),
+        ),
+        MenuItemData(
+          'GES Karavan / Mobil Sistem Tasarımı',
+          'Mobil yük profili ve PV/akü ön boyutlandırması',
+          Icons.directions_car_rounded,
+          const GesKaravanTasarimEkrani(),
         ),
       ],
     );

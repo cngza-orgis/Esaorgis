@@ -380,36 +380,38 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
   );
 
   String malzeme = 'Bakır';
-
   String doseme = 'Havada';
+  String gerilim = 'AG';
+  String sistem = 'Trifaze';
 
   double? kapasite;
-
   String? detay;
+
+  bool gucKontrolu = false;
+  final TextEditingController _gucCtrl = TextEditingController();
+  double pf = esaDefaultPowerFactor;
+  double? hesaplananAkim;
+  bool? kapasiteUygun;
+
+  @override
+  void dispose() {
+    _gucCtrl.dispose();
+    super.dispose();
+  }
 
   double _anaKesit(String s) {
     final String clean = s.replaceAll(',', '.');
 
     final RegExp uc = RegExp(r'(\d+)x\((\d+(?:\.\d+)?)');
-
     final Match? ucMatch = uc.firstMatch(clean);
-
     if (ucMatch != null) {
-      return double.tryParse(
-            ucMatch.group(2)!,
-          ) ??
-          0;
+      return double.tryParse(ucMatch.group(2)!) ?? 0;
     }
 
     final RegExp tek = RegExp(r'(\d+)x(\d+(?:\.\d+)?)');
-
     final Match? tekMatch = tek.firstMatch(clean);
-
     if (tekMatch != null) {
-      return double.tryParse(
-            tekMatch.group(2)!,
-          ) ??
-          0;
+      return double.tryParse(tekMatch.group(2)!) ?? 0;
     }
 
     return 0;
@@ -417,137 +419,100 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
 
   int _paralel(String s) {
     final Match? m = RegExp(r'^(\d+)x\(').firstMatch(s);
-
-    if (m == null) {
-      return 1;
-    }
-
-    return int.tryParse(
-          m.group(1)!,
-        ) ??
-        1;
+    if (m == null) return 1;
+    return int.tryParse(m.group(1)!) ?? 1;
   }
 
   double _base(double sec) {
-    const List<double> smallSections = [
-      0.75,
-      1.0,
-      1.5,
-      2.5,
-      4.0,
-      6.0,
-      10.0,
-      16.0,
-      25.0,
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-      150.0,
-      185.0,
-      240.0,
-    ];
-
-    const List<double> small = [
-      10.0,
-      12.0,
-      15.0,
-      21.0,
-      28.0,
-      36.0,
-      50.0,
-      68.0,
-      89.0,
-      111.0,
-      134.0,
-      171.0,
-      207.0,
-      239.0,
-      275.0,
-      314.0,
-      369.0,
-    ];
-
-    const List<double> airSections = [
-      25.0,
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-      150.0,
-      185.0,
-      240.0,
-    ];
-
-    const List<double> air = [
-      108.0,
-      132.0,
-      160.0,
-      202.0,
-      249.0,
-      289.0,
-      329.0,
-      377.0,
-      443.0,
-    ];
-
-    if (sec >= 25) {
-      final int i = airSections.indexOf(sec);
-
-      if (i >= 0) {
-        return air[i];
-      }
+    if (malzeme == 'Bakır' && (doseme == 'Havada' || doseme == 'Toprakta')) {
+      final value = nyyKapasiteSecimeGore(
+        kesit,
+        toprakta: doseme == 'Toprakta',
+      );
+      return value ?? 0;
     }
 
-    final int i = smallSections.indexOf(sec);
-
-    if (i < 0) {
-      return 0;
+    if (malzeme == 'Alüminyum' && (doseme == 'Havada' || doseme == 'Toprakta')) {
+      final value = nayyKapasiteSecimeGore(
+        kesit,
+        toprakta: doseme == 'Toprakta',
+      );
+      return value ?? 0;
     }
 
-    return small[i];
+    return 0;
+  }
+
+  /// Faz 13 standardı: AG monofaze seçiminde kullanıcıya 1x, 2x ve 3x
+  /// NYY yapıları aynı merkezî listeden gösterilir. AG trifaze seçiminde
+  /// 4x10 sonrası 3x16+10 yapısına geçen merkezî trifaze listesi kullanılır.
+  List<String> get _kabloSecimListesi {
+    if (gerilim == 'AG' && sistem == 'Monofaze') {
+      return merkeziAgMonofazeNyyKablolar;
+    }
+    if (gerilim == 'AG' && sistem == 'Trifaze') {
+      return merkeziAgTrifazeNyyKablolar;
+    }
+    return standartKabloSecimListesi;
+  }
+
+  void _secimListesiniUygunla() {
+    final liste = _kabloSecimListesi;
+    if (liste.isNotEmpty && !liste.contains(kesit)) {
+      kesit = liste.first;
+    }
   }
 
   void hesapla() {
     final double sec = _anaKesit(kesit);
-
     final int n = _paralel(kesit);
 
     if (sec <= 0) {
       setState(() {
         kapasite = null;
         detay = null;
+        hesaplananAkim = null;
+        kapasiteUygun = null;
       });
       return;
     }
 
-    double b = _base(sec) * n;
+    // 2x10 / 4x10 ifadesindeki damar adedi KHA'yı çarpmaz.
+    // Sadece gerçek paralel kablo grupları (2x(...), 3x(...)) kapasiteyi artırır.
+    final double b = _base(sec);
 
-    if (malzeme == 'Alüminyum') {
-      b *= 0.78;
+    // Boru/tava için bu fazda rastgele bir katsayı uygulamıyoruz.
+    // Uygun yerleşim/düzeltme modeli sonraki fazda ayrı kurulacak.
+    final double? corrected = doseme == 'Havada' || doseme == 'Toprakta' ? b : null;
+
+    double? current;
+    if (gucKontrolu && gerilim == 'AG') {
+      final double p = double.tryParse(
+            _gucCtrl.text.trim().replaceAll(',', '.'),
+          ) ??
+          0;
+      if (p > 0 && pf > 0) {
+        current = sistem == 'Trifaze'
+            ? p * 1000 / (sqrt(3) * esaAgThreePhaseVoltage * pf)
+            : p * 1000 / (esaAgSinglePhaseVoltage * pf);
+      }
     }
-
-    final Map<String, double> faktorler = {
-      'Havada': 1.0,
-      'Toprakta': 0.82,
-      'Boruda': 0.80,
-      'Kablo Tavasında': 0.95,
-    };
-
-    final double f = faktorler[doseme] ?? 1.0;
-
-    final double corrected = b * f;
 
     setState(() {
       kapasite = corrected;
+      hesaplananAkim = current;
+      kapasiteUygun = current != null && corrected != null
+          ? corrected >= current
+          : null;
 
-      detay = 'Temel referans: '
-          '${b.toStringAsFixed(0)} A • '
-          'Döşeme katsayısı: '
-          '${f.toStringAsFixed(2)} • '
-          'Paralel sistem: $n';
+      if (corrected == null) {
+        detay = 'Seçilen döşeme şekli için bu fazda doğrulanmış KHA modeli yok. '
+            'Boru/tava hesabı ayrı yerleşim ve düzeltme modeliyle yapılacaktır.';
+      } else {
+        detay = 'Temel KHA: ${corrected.toStringAsFixed(0)} A • '
+            'Kesit: ${kesit.trim()} • Döşeme: $doseme • '
+            'Gerilim: $gerilim • Sistem: $sistem • Paralel grup: $n';
+      }
     });
   }
 
@@ -562,15 +527,44 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
             children: [
               twoCol(
                 Drop(
-                  label: 'İletken Malzemesi',
-                  value: malzeme,
-                  items: const [
-                    'Bakır',
-                    'Alüminyum',
-                  ],
+                  label: 'Gerilim Seviyesi',
+                  value: gerilim,
+                  items: const ['AG', 'OG'],
                   onChanged: (v) {
                     if (v == null) return;
-
+                    setState(() {
+                      gerilim = v;
+                      if (gerilim != 'AG') gucKontrolu = false;
+                      _secimListesiniUygunla();
+                      kapasite = null;
+                      hesaplananAkim = null;
+                      kapasiteUygun = null;
+                    });
+                  },
+                ),
+                Drop(
+                  label: 'Sistem Tipi',
+                  value: sistem,
+                  items: const ['Trifaze', 'Monofaze'],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() {
+                      sistem = v;
+                      _secimListesiniUygunla();
+                      kapasite = null;
+                      hesaplananAkim = null;
+                      kapasiteUygun = null;
+                    });
+                  },
+                ),
+              ),
+              twoCol(
+                Drop(
+                  label: 'İletken Malzemesi',
+                  value: malzeme,
+                  items: const ['Bakır', 'Alüminyum'],
+                  onChanged: (v) {
+                    if (v == null) return;
                     setState(() {
                       malzeme = v;
                       kapasite = null;
@@ -580,15 +574,9 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
                 Drop(
                   label: 'Döşeme Şekli',
                   value: doseme,
-                  items: const [
-                    'Havada',
-                    'Toprakta',
-                    'Boruda',
-                    'Kablo Tavasında',
-                  ],
+                  items: const ['Havada', 'Toprakta', 'Boruda', 'Kablo Tavasında'],
                   onChanged: (v) {
                     if (v == null) return;
-
                     setState(() {
                       doseme = v;
                       kapasite = null;
@@ -599,27 +587,73 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
               Drop(
                 label: 'Kablo Kesiti / Yapısı',
                 value: kesit,
-                items: standartKabloSecimListesi,
+                items: _kabloSecimListesi,
                 onChanged: (v) {
                   if (v == null) return;
-
                   setState(() {
                     kesit = v;
                     kapasite = null;
                   });
                 },
               ),
-              calcButton(
-                'KAPASİTEYİ HESAPLA',
-                hesapla,
-              ),
+              if (gerilim == 'AG') ...[
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: gucKontrolu,
+                  title: const Text('Güçten hesaplanan akımı kapasiteyle karşılaştır'),
+                  subtitle: const Text('Yalnızca AG için isteğe bağlı kontrol.'),
+                  onChanged: (v) {
+                    setState(() {
+                      gucKontrolu = v ?? false;
+                      hesaplananAkim = null;
+                      kapasiteUygun = null;
+                    });
+                  },
+                ),
+                if (gucKontrolu) ...[
+                  Field(controller: _gucCtrl, label: 'Güç (kW)'),
+                  Text(
+                    'Güç faktörü (Cos φ): ${pf.toStringAsFixed(2)}',
+                    style: TextStyle(color: cText(), fontWeight: FontWeight.w700),
+                  ),
+                  Slider(
+                    value: pf,
+                    min: 0.50,
+                    max: 1.00,
+                    divisions: 50,
+                    activeColor: cIcon(),
+                    onChanged: (v) {
+                      setState(() {
+                        pf = v;
+                        hesaplananAkim = null;
+                        kapasiteUygun = null;
+                      });
+                    },
+                  ),
+                ],
+              ],
+              calcButton('KAPASİTEYİ HESAPLA', hesapla),
             ],
           ),
           if (kapasite != null)
             uiResultCard(
-              'Yaklaşık sürekli akım taşıma kapasitesi',
+              'Taşıma kapasitesi',
               fmt2(kapasite!),
               'A',
+            ),
+          if (hesaplananAkim != null)
+            uiResultCard(
+              'Güçten hesaplanan akım',
+              fmt2(hesaplananAkim!),
+              'A',
+            ),
+          if (kapasiteUygun != null)
+            uiResultCard(
+              'Kapasite kontrolü',
+              kapasiteUygun! ? 'UYGUN' : 'YETERSİZ',
+              kapasiteUygun!
+                  ? 'Hesaplanan akım, seçilen kablonun ön KHA değerini aşmıyor.'
+                  : 'Hesaplanan akım, seçilen kablonun ön KHA değerini aşıyor.',
             ),
           if (detay != null)
             uiResultCard(
@@ -629,14 +663,10 @@ class _KabloKapasitesiEkraniState extends State<KabloKapasitesiEkrani> {
             ),
           const AdviceCard(
             title: 'Teknik not',
-            text: 'Kablo kapasitesi; kablo yapısı, '
-                'iletken malzemesi, döşeme biçimi, '
-                'ortam sıcaklığı, paralel sistem sayısı '
-                've düzeltme katsayılarına bağlıdır. '
-                'Buradaki sonuç ön değerlendirmedir; '
-                'kesin saha kesiti ilgili standart, '
-                'üretici tablosu ve gerçek döşeme '
-                'koşullarıyla doğrulanmalıdır.',
+            text: 'Kablo kapasitesi; kablo yapısı, iletken malzemesi, döşeme biçimi, '
+                'ortam sıcaklığı, gruplanma ve düzeltme katsayılarına bağlıdır. '
+                'Buradaki sonuç ön değerlendirmedir; kesin saha kesiti ilgili standart, '
+                'üretici tablosu ve gerçek döşeme koşullarıyla doğrulanmalıdır.',
           ),
         ],
       ),
@@ -659,6 +689,7 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
   final TextEditingController power = TextEditingController();
 
   String sistem = 'Trifaze';
+  double pf = esaDefaultPowerFactor;
 
   double? current;
 
@@ -685,8 +716,8 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
     }
 
     final double i = sistem == 'Trifaze'
-        ? p * 1000 / (sqrt(3) * 380 * 0.9)
-        : p * 1000 / (220 * 0.9);
+        ? p * 1000 / (sqrt(3) * esaAgThreePhaseVoltage * pf)
+        : p * 1000 / (esaAgSinglePhaseVoltage * pf);
 
     setState(() {
       current = i;
@@ -739,6 +770,20 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
               ),
             ],
           ),
+          Drop(
+            label: 'Güç faktörü (cosφ)',
+            value: pf.toStringAsFixed(2),
+            items: const ['0.80', '0.85', '0.90', '0.95', '0.98', '1.00'],
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() {
+                pf = double.tryParse(v) ?? esaDefaultPowerFactor;
+                current = null;
+                fuse = null;
+              });
+            },
+          ),
+          const SizedBox(height: 10),
           calcButton(
             t(
               'HESAPLA',
@@ -758,8 +803,8 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
           if (fuse != null)
             uiResultCard(
               t(
-                'Önerilen Sigorta / TMŞ',
-                'Recommended Fuse / MCCB',
+                'Ön Seçim Sigorta / TMŞ',
+                'Preselected Fuse / MCCB',
               ),
               fuse.toString(),
               'A',
@@ -767,8 +812,8 @@ class _SigortaEkraniState extends State<SigortaEkrani> {
           if (fuse != null)
             uiResultCard(
               t(
-                'Önerilen Kablo',
-                'Recommended Cable',
+                'Ön Seçim Kablo',
+                'Preselected Cable',
               ),
               standartKabloBulNYY(
                 fuse!.toDouble(),

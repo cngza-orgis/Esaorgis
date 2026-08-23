@@ -99,12 +99,11 @@ class _PanelAmortismanEkraniState extends State<PanelAmortismanEkrani> {
 
 class OlcuTrafoEkrani extends StatefulWidget { const OlcuTrafoEkrani({super.key}); @override State<OlcuTrafoEkrani> createState()=>_OlcuTrafoEkraniState(); }
 class _OlcuTrafoEkraniState extends State<OlcuTrafoEkrani>{
-  final power=TextEditingController(); String seviye='AG'; String gerilim='31500'; String? ct; String? vt; double? akim; double? va;
-  final ctVals=const [20,30,40,50,75,100,150,200,250,300,400,500,600,800,1000,1250,1600,2000,2500,3000,4000,5000];
+  final power=TextEditingController(); String seviye='AG'; String gerilim=esaOgVoltageOptions.first; double pf=esaDefaultPowerFactor; String? ct; String? vt; double? akim; double? va;
   @override void dispose(){power.dispose();super.dispose();}
-  void hesapla(){final p=double.tryParse(power.text.replaceAll(',','.'))??0; if(p<=0){setState(() { ct=null; vt=null; akim=null; va=null; });return;} final v=seviye=='AG'?400:double.tryParse(gerilim)??31500; final i=seviye=='AG' ? p*1000/(sqrt(3)*v*.95) : p*1000/(sqrt(3)*v*.95); final prim=ctVals.firstWhere((x)=>x>=i,orElse:()=>5000); setState(() { akim=i; ct='$prim/5 A'; vt=seviye=='OG'?'${gerilim} / 100 V':'AG gerilim trafosu gerekmez'; va=max(5.0,i*1.5); });}
-  @override Widget build(BuildContext context)=>AppScaffold(title:'Ölçü Trafo Hesaplama',info:true,onInfo:()=>bilgiPopup(context,'Ölçü Trafo Hesaplama','AG seviyesinde güç girişi kW, OG seviyesinde kVA olarak alınır. Akım trafosu seçiminde hesaplanan akıma eşit veya onu karşılayan en yakın üst standart primer değer ön seçim olarak kullanılır. Sekonder tarafı projeye göre 1 A veya 5 A olabilir. Kesin seçim; ölçü/koruma amacı, burden, doğruluk sınıfı, kısa devre dayanımı ve ilgili şartnameyle doğrulanmalıdır.'),body:ScrollBody(children:[
-    SectionCard(title:'Girişler',children:[twoCol(Drop(label:'Gerilim seviyesi',value:seviye,items:const ['AG','OG'],onChanged:(v)=>setState(()=>seviye=v!)),Field(controller:power,label:seviye=='AG'?'Güç (kW)':'Güç (kVA)')),if(seviye=='OG')Drop(label:'OG gerilim seviyesi (V)',value:gerilim,items:const ['31500','33000','34500','36000'],onChanged:(v)=>setState(()=>gerilim=v!)),calcButton('HESAPLA',hesapla)]),
+  void hesapla(){final p=double.tryParse(power.text.replaceAll(',','.'))??0; if(p<=0){setState(() { ct=null; vt=null; akim=null; va=null; });return;} final v=seviye=='AG'?esaAgThreePhaseVoltage:double.tryParse(gerilim)??double.parse(esaOgVoltageOptions.first); final i=seviye=='AG' ? esaThreePhaseCurrentFromKw(p,v,pf) : esaThreePhaseCurrentFromKva(p,v); if(!i.isFinite||i<=0){setState(() { ct=null; vt=null; akim=null; va=null; });return;} final ortakCt=standartAkimTrafosuBul(i); setState(() { akim=i; ct=ortakCt; vt=seviye=='OG'?'${gerilim} / 100 V':'AG gerilim trafosu gerekmez'; va=max(5.0,i*1.5); });}
+  @override Widget build(BuildContext context)=>AppScaffold(title:'Ölçü Trafo Hesaplama',info:true,onInfo:()=>bilgiPopup(context,'Ölçü Trafo Hesaplama','AG seviyesinde güç girişi kW ve cosφ ile akıma dönüştürülür. OG seviyesinde giriş doğrudan kVA olduğundan akım hesabında ayrıca cosφ uygulanmaz. Akım trafosu seçiminde hesaplanan akıma eşit veya onu karşılayan en yakın üst standart primer değer ön seçim olarak kullanılır. Sekonder tarafı projeye göre 1 A veya 5 A olabilir. Kesin seçim; ölçü/koruma amacı, burden, doğruluk sınıfı, kısa devre dayanımı ve ilgili şartnameyle doğrulanmalıdır.'),body:ScrollBody(children:[
+    SectionCard(title:'Girişler',children:[twoCol(Drop(label:'Gerilim seviyesi',value:seviye,items:const ['AG','OG'],onChanged:(v)=>setState(()=>seviye=v!)),Field(controller:power,label:seviye=='AG'?'Güç (kW)':'Güç (kVA)')),if(seviye=='OG')Drop(label:'OG gerilim seviyesi (V)',value:gerilim,items:esaOgVoltageOptions,onChanged:(v)=>setState(()=>gerilim=v!)),if(seviye=='AG') Drop(label:'Güç Faktörü (cosφ)',value:pf.toStringAsFixed(2),items:const ['0.80','0.85','0.90','0.95','0.98','1.00'],onChanged:(v)=>setState(()=>pf=double.tryParse(v??'')??esaDefaultPowerFactor)),calcButton('HESAPLA',hesapla)]),
     if(akim!=null) ...[uiResultCard('Hesaplanan akım',fmt2(akim!),'A'),uiResultCard('Akım trafosu',ct??'-','A'),uiResultCard('Akım trafosu ikincil yükü (VA)',fmt2(va??0),'VA'),uiResultCard('Gerilim trafosu',vt??'-','')],
     AdviceCard(title:'Bilgi',text:'AG güç girişi kW, OG güç girişi kVA olarak değerlendirilir. Sekonder akımı projeye göre 5 A yerine 1 A seçilebilir (örn. 30/1 A). Kesin CT/VT seçimi proje, ölçü sistemi, koruma sistemi ve üretici verileriyle doğrulanmalıdır.'),
   ]));
@@ -143,7 +142,7 @@ class _AkimTrafoEkraniState extends State<AkimTrafoEkrani> {
         Field(controller: burden, label: t('Toplam Burden (VA)', 'Total Burden (VA)')),
         calcButton(t('HESAPLA', 'CALCULATE'), hesapla),
       ]),
-      if (ratio != null) uiResultCard(t('Önerilen CT', 'Recommended CT'), ratio!, ''),
+      if (ratio != null) uiResultCard(t('Ön Seçim CT', 'Preselected CT'), ratio!, ''),
       if (ratio != null)
         uiResultCard(
           t('Sekonder Burden', 'Secondary Burden'),
@@ -210,7 +209,7 @@ class _IzolasyonTrafoEkraniState extends State<IzolasyonTrafoEkrani> {
       Field(controller: power, label: t('Yük Gücü (kW)', 'Load Power (kW)')),
       calcButton(t('HESAPLA', 'CALCULATE'), hesapla),
       if (selectedKva != null)
-        uiResultCard(t('Önerilen Trafo', 'Recommended Transformer'), selectedKva!.toStringAsFixed(1), 'kVA'),
+        uiResultCard(t('Ön Seçim Trafo', 'Preselected Transformer'), selectedKva!.toStringAsFixed(1), 'kVA'),
       AdviceCard(
         title: t('Teknik Not', 'Technical Note'),
         text: t(

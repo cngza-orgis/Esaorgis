@@ -49,7 +49,7 @@ Trifaze:
 ΔU = √3 × I × (R × cosφ + X × sinφ) × L
 
 Monofaze:
-ΔU = 2 × I × R × L
+ΔU = 2 × I × (R × cosφ + X × sinφ) × L
 
 Gerilim düşümü yüzdesi:
 ΔU% = 100 × ΔU / U
@@ -183,12 +183,13 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
   String gerilim = 'AG';
   String fazTipi = 'Trifaze';
+  String ogGerilim = '${(esaDefaultOgVoltage / 1000).toStringAsFixed(1)}';
   String iletkenTipi = 'NYY-Bakır Kablo';
   String doseme = 'Havada';
 
   String kabloKesiti = '3x1,5 mm²';
 
-  double pf = 0.80;
+  double pf = esaDefaultPowerFactor;
 
   double akim = 0;
   double? kapasite;
@@ -213,9 +214,8 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
   bool hesaplandi = false;
 
-  static const double agVolt = 400.0;
-  static const double agMonoVolt = 230.0;
-  static const double ogVolt = 20300.0;
+  static const double agVolt = esaAgThreePhaseVoltage;
+  static const double agMonoVolt = esaAgSinglePhaseVoltage;
 
   static const double izinVerilenDusum = 5.0;
 
@@ -299,11 +299,11 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       }
 
       return const [
-        '3 AWG - SWALLOW',
-        '1/0 AWG - RAVEN',
-        '3/0 AWG - PİGEON',
-        '266.8 MCM - PATRİDGE',
-        '477 MCM - HAWK',
+        'SWALLOW',
+        'RAVEN',
+        'PİGEON',
+        'PATRİDGE',
+        'HAWK',
       ];
     }
 
@@ -322,136 +322,16 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
   List<String> _nyyKesitler(String faz) {
     if (faz == 'Monofaze') {
-      return const [
-        '1x0,75 mm²',
-        '1x1 mm²',
-        '1x1,5 mm²',
-        '1x2,5 mm²',
-        '1x4 mm²',
-        '1x6 mm²',
-        '1x10 mm²',
-        '1x16 mm²',
-        '1x25 mm²',
-        '1x35 mm²',
-        '1x50 mm²',
-        '1x70 mm²',
-        '1x95 mm²',
-        '1x120 mm²',
-        '1x150 mm²',
-        '1x185 mm²',
-        '1x240 mm²',
-        '2x0,75 mm²',
-        '2x1 mm²',
-        '2x1,5 mm²',
-        '2x2,5 mm²',
-        '2x4 mm²',
-        '2x6 mm²',
-        '2x10 mm²',
-        '2x16 mm²',
-        '2x25 mm²',
-        '2x35 mm²',
-        '2x50 mm²',
-        '2x70 mm²',
-        '2x95 mm²',
-        '2x120 mm²',
-        '2x150 mm²',
-        '2x185 mm²',
-        '2x240 mm²',
-      ];
+      return merkeziAgMonofazeNyyKablolar;
     }
 
-    return const [
-      '3x1,5 mm²',
-      '3x2,5 mm²',
-      '3x4 mm²',
-      '3x6 mm²',
-      '3x10 mm²',
-      '4x1,5 mm²',
-      '4x2,5 mm²',
-      '4x4 mm²',
-      '4x6 mm²',
-      '4x10 mm²',
-      '4x16 mm²',
-      '3x16+10 mm²',
-      '3x25+16 mm²',
-      '3x35+16 mm²',
-      '3x50+25 mm²',
-      '3x70+35 mm²',
-      '3x95+50 mm²',
-      '3x120+70 mm²',
-      '3x150+70 mm²',
-      '3x185+95 mm²',
-      '3x240+120 mm²',
-      '2x(3x16+10) mm²',
-      '2x(3x25+16) mm²',
-      '2x(3x35+16) mm²',
-      '2x(3x50+25) mm²',
-      '2x(3x70+35) mm²',
-      '2x(3x95+50) mm²',
-      '2x(3x120+70) mm²',
-      '2x(3x150+70) mm²',
-      '2x(3x185+95) mm²',
-      '2x(3x240+120) mm²',
-      '3x(3x25+16) mm²',
-      '3x(3x35+16) mm²',
-      '3x(3x50+25) mm²',
-      '3x(3x70+35) mm²',
-      '3x(3x95+50) mm²',
-      '3x(3x120+70) mm²',
-      '3x(3x150+70) mm²',
-      '3x(3x185+95) mm²',
-      '3x(3x240+120) mm²',
-    ];
+    return merkeziAgTrifazeNyyKablolar;
   }
 
   List<String> _nayyKesitler(String faz) {
-    if (faz == 'Monofaze') {
-      return const [
-        '1x10 mm²',
-        '1x16 mm²',
-        '1x25 mm²',
-        '1x35 mm²',
-        '1x50 mm²',
-        '1x70 mm²',
-        '1x95 mm²',
-        '1x120 mm²',
-        '1x150 mm²',
-        '1x185 mm²',
-        '1x240 mm²',
-        '2x10 mm²',
-        '2x16 mm²',
-        '2x25 mm²',
-        '2x35 mm²',
-        '2x50 mm²',
-        '2x70 mm²',
-        '2x95 mm²',
-        '2x120 mm²',
-        '2x150 mm²',
-        '2x185 mm²',
-        '2x240 mm²',
-      ];
-    }
-
-    return const [
-      '3x25 mm²',
-      '3x35 mm²',
-      '3x50 mm²',
-      '3x70 mm²',
-      '3x95 mm²',
-      '3x120 mm²',
-      '3x150 mm²',
-      '3x185 mm²',
-      '3x240 mm²',
-      '3x25+16 mm²',
-      '3x35+16 mm²',
-      '3x50+25 mm²',
-      '3x70+35 mm²',
-      '3x95+50 mm²',
-      '3x120+70 mm²',
-      '3x150+70 mm²',
-      '3x185+95 mm²',
-      '3x240+120 mm²',
-    ];
+    return faz == 'Monofaze'
+        ? merkeziAgMonofazeNayyKablolar()
+        : merkeziAgTrifazeNayyKablolar();
   }
 
   /* ======================================================================
@@ -583,560 +463,43 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
     return 1;
   }
 
-  String _kesitAnahtari(double value) {
-    if (value <= 0) {
-      return '';
-    }
-
-    if (value == value.roundToDouble()) {
-      return value.toInt().toString();
-    }
-
-    return value.toString();
-  }
-
   /* ======================================================================
-   * NYY DOĞRULANMIŞ KAPASİTELER
+   * NYY KAPASİTE VERİSİ
+   *
+   * NYY kapasite verisinin tek kaynağı cable_database.dart'dır. Böylece
+   * Hat Analizi ile Kablo Taşıma Kapasitesi aracı aynı KHA verisini kullanır.
    * ==================================================================== */
-
-  double? _nyyHavaDogrulanmis(double kesit) {
-    const data = <String, double>{
-      '1.5': 30.0,
-      '2.5': 41.0,
-      '4': 55.0,
-      '6': 70.0,
-      '10': 98.0,
-      '16': 132.0,
-      '25': 176.0,
-      '35': 218.0,
-      '50': 276.0,
-      '70': 347.0,
-      '95': 416.0,
-      '120': 488.0,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  double? _nyyToprakDogrulanmis(double kesit) {
-    const data = <String, double>{
-      '1.5': 29.0,
-      '2.5': 39.0,
-      '4': 52.0,
-      '6': 67.0,
-      '10': 93.0,
-      '16': 125.0,
-      '25': 167.0,
-      '35': 207.0,
-      '50': 262.0,
-      '70': 330.0,
-      '95': 395.0,
-      '120': 464.0,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  /* ======================================================================
-   * NAYY DOĞRULANMIŞ KAPASİTELER
-   * ==================================================================== */
-
-  double? _nayyHavaDogrulanmis(double kesit) {
-    const data = <String, double>{
-      '10': 45.0,
-      '16': 60.0,
-      '25': 87.0,
-      '35': 107.0,
-      '50': 131.0,
-      '70': 166.0,
-      '95': 205.0,
-      '120': 239.0,
-      '150': 273.0,
-      '185': 317.0,
-      '240': 378.0,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  double? _nayyToprakDogrulanmis(double kesit) {
-    const data = <String, double>{
-      '10': 55.0,
-      '16': 75.0,
-      '25': 106.0,
-      '35': 127.0,
-      '50': 151.0,
-      '70': 185.0,
-      '95': 222.0,
-      '120': 253.0,
-      '150': 284.0,
-      '185': 322.0,
-      '240': 375.0,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  /* ======================================================================
-   * OG KAPASİTELERİ
-   * ==================================================================== */
-
-  double? _ogKabloDogrulanmis(double kesit) {
-    final key = _kesitAnahtari(kesit);
-
-    final isCu = iletkenTipi == 'N2XSY Kablo';
-
-    const cuHava = <String, double>{
-      '35': 193.0,
-      '50': 231.0,
-      '70': 289.0,
-      '95': 354.0,
-      '120': 409.0,
-      '150': 464.0,
-      '185': 532.0,
-      '240': 631.0,
-      '300': 722.0,
-      '400': 837.0,
-      '500': 961.0,
-    };
-
-    const cuToprak = <String, double>{
-      '35': 181.0,
-      '50': 213.0,
-      '70': 258.0,
-      '95': 309.0,
-      '120': 349.0,
-      '150': 390.0,
-      '185': 438.0,
-      '240': 506.0,
-      '300': 565.0,
-      '400': 635.0,
-      '500': 711.0,
-    };
-
-    const alHava = <String, double>{
-      '35': 151.0,
-      '50': 182.0,
-      '70': 226.0,
-      '95': 278.0,
-      '120': 321.0,
-      '150': 364.0,
-      '185': 420.0,
-      '240': 501.0,
-      '300': 578.0,
-      '400': 679.0,
-      '500': 789.0,
-    };
-
-    const alToprak = <String, double>{
-      '35': 143.0,
-      '50': 167.0,
-      '70': 205.0,
-      '95': 243.0,
-      '120': 277.0,
-      '150': 311.0,
-      '185': 351.0,
-      '240': 408.0,
-      '300': 459.0,
-      '400': 521.0,
-      '500': 592.0,
-    };
-
-    if (isCu) {
-      return doseme == 'Toprakta' ? cuToprak[key] : cuHava[key];
-    }
-
-    return doseme == 'Toprakta' ? alToprak[key] : alHava[key];
-  }
 
   /* ======================================================================
    * AÇIK İLETKEN
    * ==================================================================== */
 
   double? _acikIletkenAkimi(String secim) {
-    const ag = <String, double>{
-      'ROSE (R)': 110.0,
-      'LILIY (L)': 125.0,
-      'PANSY (P)': 165.0,
-      'POPY (Po)': 193.0,
-      'ASTER (A)': 225.0,
-      'PHLOX (Ph)': 262.0,
-      'OXLIP (O)': 306.0,
-    };
-
-    const og = <String, double>{
-      '3 AWG - SWALLOW': 120.0,
-      '1/0 AWG - RAVEN': 195.0,
-      '3/0 AWG - PİGEON': 275.0,
-      '266.8 MCM - PATRİDGE': 345.0,
-      '477 MCM - HAWK': 540.0,
-    };
-
-    return gerilim == 'AG' ? ag[secim] : og[secim];
+    final normalized = secim.trim().toLowerCase();
+    final liste =
+        gerilim == 'AG' ? merkeziAgAcikIletkenler : merkeziOgAcikIletkenler;
+    for (final MerkeziAcikIletken item in liste) {
+      if (item.ad.trim().toLowerCase() == normalized) return item.kapasiteA;
+    }
+    return null;
   }
 
-  double? _acikIletkenR(String secim) {
-    const ag = <String, double>{
-      'ROSE (R)': 1.354,
-      'LILIY (L)': 1.074,
-      'PANSY (P)': 0.6752,
-      'POPY (Po)': 0.5351,
-      'ASTER (A)': 0.4245,
-      'PHLOX (Ph)': 0.3366,
-      'OXLIP (O)': 0.2671,
-    };
-
-    const og = <String, double>{
-      '3 AWG - SWALLOW': 1.0742,
-      '1/0 AWG - RAVEN': 0.5362,
-      '3/0 AWG - PİGEON': 0.3366,
-      '266.8 MCM - PATRİDGE': 0.214,
-      '477 MCM - HAWK': 0.1194,
-    };
-
-    return gerilim == 'AG' ? ag[secim] : og[secim];
-  }
+  double? _acikIletkenR(String secim) =>
+      merkeziAcikIletkenROhmKm(secim, og: gerilim == 'OG');
 
   /* ======================================================================
-   * YAKLAŞIK KAPASİTE MOTORU
+   * KAPASİTE MOTORU
    *
-   * Burada doğrulanmış veri bulunmayan kesitlerde, aynı malzeme ve döşeme
-   * grubundaki bilinen noktalardan logaritmik/power-law yaklaşımı yapılır.
-   *
-   * Bu değer "katalog değeri" değildir.
-   * Sonuç ekranında yaklaşık olarak gösterilir.
+   * Merkezi veri tabanında doğrulanmış karşılığı bulunmayan kesitler için
+   * burada yaklaşık KHA üretilmez. Böylece aynı kablo farklı araçlarda
+   * farklı matematiksel tahminlerle görünmez.
    * ==================================================================== */
-
-  double? _powerLawKapasite({
-    required double kesit,
-    required List<double> kesitler,
-    required List<double> kapasiteler,
-  }) {
-    if (kesit <= 0 ||
-        kesitler.length != kapasiteler.length ||
-        kesitler.length < 2) {
-      return null;
-    }
-
-    final noktalar = <List<double>>[];
-
-    for (var i = 0; i < kesitler.length; i++) {
-      if (kesitler[i] > 0 && kapasiteler[i] > 0) {
-        noktalar.add([
-          kesitler[i],
-          kapasiteler[i],
-        ]);
-      }
-    }
-
-    if (noktalar.length < 2) {
-      return null;
-    }
-
-    if (kesit < noktalar.first[0]) {
-      final x1 = noktalar[0][0];
-      final y1 = noktalar[0][1];
-      final x2 = noktalar[1][0];
-      final y2 = noktalar[1][1];
-
-      final exponent = log(y2 / y1) / log(x2 / x1);
-
-      if (!exponent.isFinite || exponent <= 0) {
-        return null;
-      }
-
-      final sonuc = y1 * pow(kesit / x1, exponent);
-
-      if (!sonuc.isFinite || sonuc <= 0) {
-        return null;
-      }
-
-      return sonuc;
-    }
-
-    for (var i = 0; i < noktalar.length - 1; i++) {
-      final x1 = noktalar[i][0];
-      final y1 = noktalar[i][1];
-      final x2 = noktalar[i + 1][0];
-      final y2 = noktalar[i + 1][1];
-
-      if (kesit >= x1 && kesit <= x2) {
-        final exponent = log(y2 / y1) / log(x2 / x1);
-
-        if (!exponent.isFinite || exponent <= 0) {
-          return null;
-        }
-
-        final sonuc = y1 * pow(kesit / x1, exponent);
-
-        if (!sonuc.isFinite || sonuc <= 0) {
-          return null;
-        }
-
-        return sonuc;
-      }
-    }
-
-    final son = noktalar.length - 1;
-
-    final x1 = noktalar[son - 1][0];
-    final y1 = noktalar[son - 1][1];
-    final x2 = noktalar[son][0];
-    final y2 = noktalar[son][1];
-
-    final exponent = log(y2 / y1) / log(x2 / x1);
-
-    if (!exponent.isFinite || exponent <= 0) {
-      return null;
-    }
-
-    final sonuc = y2 * pow(kesit / x2, exponent);
-
-    if (!sonuc.isFinite || sonuc <= 0) {
-      return null;
-    }
-
-    return sonuc;
-  }
-
-  double? _nyyYaklasik(double kesit) {
-    const kesitler = [
-      1.5,
-      2.5,
-      4.0,
-      6.0,
-      10.0,
-      16.0,
-      25.0,
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-    ];
-
-    final kapasiteler = doseme == 'Toprakta'
-        ? const [
-            29.0,
-            39.0,
-            52.0,
-            67.0,
-            93.0,
-            125.0,
-            167.0,
-            207.0,
-            262.0,
-            330.0,
-            395.0,
-            464.0,
-          ]
-        : const [
-            30.0,
-            41.0,
-            55.0,
-            70.0,
-            98.0,
-            132.0,
-            176.0,
-            218.0,
-            276.0,
-            347.0,
-            416.0,
-            488.0,
-          ];
-
-    return _powerLawKapasite(
-      kesit: kesit,
-      kesitler: kesitler,
-      kapasiteler: kapasiteler,
-    );
-  }
-
-  double? _nayyYaklasik(double kesit) {
-    const kesitler = [
-      10.0,
-      16.0,
-      25.0,
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-      150.0,
-      185.0,
-      240.0,
-    ];
-
-    final kapasiteler = doseme == 'Toprakta'
-        ? const [
-            55.0,
-            75.0,
-            106.0,
-            127.0,
-            151.0,
-            185.0,
-            222.0,
-            253.0,
-            284.0,
-            322.0,
-            375.0,
-          ]
-        : const [
-            45.0,
-            60.0,
-            87.0,
-            107.0,
-            131.0,
-            166.0,
-            205.0,
-            239.0,
-            273.0,
-            317.0,
-            378.0,
-          ];
-
-    return _powerLawKapasite(
-      kesit: kesit,
-      kesitler: kesitler,
-      kapasiteler: kapasiteler,
-    );
-  }
-
-  double? _ogYaklasik(double kesit) {
-    const kesitler = [
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-      150.0,
-      185.0,
-      240.0,
-      300.0,
-      400.0,
-      500.0,
-    ];
-
-    if (iletkenTipi == 'N2XSY Kablo') {
-      final kapasiteler = doseme == 'Toprakta'
-          ? const [
-              181.0,
-              213.0,
-              258.0,
-              309.0,
-              349.0,
-              390.0,
-              438.0,
-              506.0,
-              565.0,
-              635.0,
-              711.0,
-            ]
-          : const [
-              193.0,
-              231.0,
-              289.0,
-              354.0,
-              409.0,
-              464.0,
-              532.0,
-              631.0,
-              722.0,
-              837.0,
-              961.0,
-            ];
-
-      return _powerLawKapasite(
-        kesit: kesit,
-        kesitler: kesitler,
-        kapasiteler: kapasiteler,
-      );
-    }
-
-    final kapasiteler = doseme == 'Toprakta'
-        ? const [
-            143.0,
-            167.0,
-            205.0,
-            243.0,
-            277.0,
-            311.0,
-            351.0,
-            408.0,
-            459.0,
-            521.0,
-            592.0,
-          ]
-        : const [
-            151.0,
-            182.0,
-            226.0,
-            278.0,
-            321.0,
-            364.0,
-            420.0,
-            501.0,
-            578.0,
-            679.0,
-            789.0,
-          ];
-
-    return _powerLawKapasite(
-      kesit: kesit,
-      kesitler: kesitler,
-      kapasiteler: kapasiteler,
-    );
-  }
-
-  /* ======================================================================
-   * ALPEK YAKLAŞIK KAPASİTE
-   *
-   * Buradaki model doğrudan üretici katalog değeri değildir.
-   * Alüminyum iletken için mevcut NAYY verilerinden türetilen kontrollü
-   * bir yaklaşım kullanılır.
-   * ==================================================================== */
-
-  double? _alpekYaklasik(double kesit) {
-    const kesitler = [
-      35.0,
-      50.0,
-      70.0,
-      95.0,
-      120.0,
-    ];
-
-    const hava = [
-      107.0,
-      131.0,
-      166.0,
-      205.0,
-      239.0,
-    ];
-
-    const toprak = [
-      127.0,
-      151.0,
-      185.0,
-      222.0,
-      253.0,
-    ];
-
-    return _powerLawKapasite(
-      kesit: kesit,
-      kesitler: kesitler,
-      kapasiteler: doseme == 'Toprakta' ? toprak : hava,
-    );
-  }
 
   /* ======================================================================
    * ANA KAPASİTE MOTORU
    * ==================================================================== */
 
   _HatKapasiteSonucu _kapasiteSonucu(String secim) {
-    // Tavada ve boruda kapasite için bu dosyada doğrulanmış teknik veri
-    // bulunmadığından, Havada/Toprakta tablolarını yanlışlıkla bu döşemelere
-    // uygulamıyoruz. Teknik olarak desteklenmeyen bir kapasiteyi üretmek
-    // yerine sonucu açıkça "model yok" olarak bırakmak daha güvenlidir.
     if (doseme != 'Havada' && doseme != 'Toprakta') {
       return const _HatKapasiteSonucu(
         akim: null,
@@ -1158,111 +521,92 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       );
     }
 
-    final paralel = _paralelSayisi(secim);
+    final bool toprakta = doseme == 'Toprakta';
 
+    // NYY Cu: mevcut cable_database.dart içindeki merkezi kapasite motoru.
     if (iletkenTipi == 'NYY-Bakır Kablo') {
-      final dogrulanmis = doseme == 'Toprakta'
-          ? _nyyToprakDogrulanmis(kesit)
-          : _nyyHavaDogrulanmis(kesit);
+      final value = nyyKapasiteSecimeGore(
+        secim,
+        toprakta: toprakta,
+      );
 
-      if (dogrulanmis != null && dogrulanmis > 0) {
+      if (value != null && value > 0 && value.isFinite) {
         return _HatKapasiteSonucu(
-          akim: dogrulanmis * paralel,
+          akim: value,
           dogrulanmis: true,
           yaklasik: false,
-          kaynak: 'NYY bakır için teknik kapasite tablosu',
+          kaynak: 'Merkezî cable_database.dart NYY Cu kapasite verisi — '
+              '${toprakta ? 'toprakta' : 'havada'}.',
         );
       }
 
-      final yaklasik = _nyyYaklasik(kesit);
-
-      if (yaklasik != null && yaklasik > 0) {
-        return _HatKapasiteSonucu(
-          akim: yaklasik * paralel,
-          dogrulanmis: false,
-          yaklasik: true,
-          kaynak:
-              'NYY bakır için mevcut teknik kapasite noktalarından yaklaşık hesap',
-        );
-      }
+      return _HatKapasiteSonucu(
+        akim: null,
+        dogrulanmis: false,
+        yaklasik: false,
+        kaynak: 'Merkezî NYY Cu kapasite tablosunda "$secim" kaydı bulunamadı.',
+      );
     }
 
+    // NAYY Al: mevcut cable_database.dart içindeki merkezi kapasite motoru.
     if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
-      final dogrulanmis = doseme == 'Toprakta'
-          ? _nayyToprakDogrulanmis(kesit)
-          : _nayyHavaDogrulanmis(kesit);
+      final value = nayyKapasiteSecimeGore(
+        secim,
+        toprakta: toprakta,
+      );
 
-      if (dogrulanmis != null && dogrulanmis > 0) {
+      if (value != null && value > 0 && value.isFinite) {
         return _HatKapasiteSonucu(
-          akim: dogrulanmis * paralel,
+          akim: value,
           dogrulanmis: true,
           yaklasik: false,
-          kaynak: 'NAYY alüminyum için teknik kapasite tablosu',
+          kaynak: 'Merkezî cable_database.dart NAYY Al kapasite verisi — '
+              '${toprakta ? 'toprakta' : 'havada'}.',
         );
       }
 
-      final yaklasik = _nayyYaklasik(kesit);
-
-      if (yaklasik != null && yaklasik > 0) {
-        return _HatKapasiteSonucu(
-          akim: yaklasik * paralel,
-          dogrulanmis: false,
-          yaklasik: true,
-          kaynak:
-              'NAYY alüminyum için mevcut teknik kapasite noktalarından yaklaşık hesap',
-        );
-      }
-    }
-
-    if (iletkenTipi == 'N2XSY Kablo' || iletkenTipi == 'NA2XSY Kablo') {
-      final dogrulanmis = _ogKabloDogrulanmis(kesit);
-
-      if (dogrulanmis != null && dogrulanmis > 0) {
-        return _HatKapasiteSonucu(
-          akim: dogrulanmis,
-          dogrulanmis: true,
-          yaklasik: false,
-          kaynak: 'OG kablo teknik kapasite tablosu',
-        );
-      }
-
-      final yaklasik = _ogYaklasik(kesit);
-
-      if (yaklasik != null && yaklasik > 0) {
-        return _HatKapasiteSonucu(
-          akim: yaklasik,
-          dogrulanmis: false,
-          yaklasik: true,
-          kaynak:
-              'OG kablo için mevcut teknik kapasite noktalarından yaklaşık hesap',
-        );
-      }
+      return _HatKapasiteSonucu(
+        akim: null,
+        dogrulanmis: false,
+        yaklasik: false,
+        kaynak:
+            'Merkezî NAYY Al kapasite tablosunda "$secim" kaydı bulunamadı.',
+      );
     }
 
     if (iletkenTipi == 'Açık İletken') {
       final value = _acikIletkenAkimi(secim);
 
-      if (value != null && value > 0) {
+      if (value != null && value > 0 && value.isFinite) {
         return _HatKapasiteSonucu(
           akim: value,
           dogrulanmis: true,
           yaklasik: false,
-          kaynak: 'Açık iletken teknik kapasite tablosu',
+          kaynak: 'Açık iletken teknik kapasite tablosu.',
         );
       }
     }
 
     if (iletkenTipi == 'Alpek İletken') {
-      final yaklasik = _alpekYaklasik(kesit);
+      final liste =
+          fazTipi == 'Trifaze' ? merkeziAlpekTrifaze : merkeziAlpekMonofaze;
 
-      if (yaklasik != null && yaklasik > 0) {
-        return _HatKapasiteSonucu(
-          akim: yaklasik,
-          dogrulanmis: false,
-          yaklasik: true,
-          kaynak:
-              'ALPEK için mevcut alüminyum iletken verilerinden yaklaşık hesap',
-        );
+      final secimTemiz = secim.replaceAll(' ', '').toLowerCase();
+
+      for (final item in liste) {
+        if (item.etiket.replaceAll(' ', '').toLowerCase() == secimTemiz ||
+            (item.fazKesitiMm2 - kesit).abs() < 0.001) {
+          final merkezi = item.kapasiteA;
+
+          if (merkezi > 0 && merkezi.isFinite) {
+            return _HatKapasiteSonucu(
+              akim: merkezi,
+              dogrulanmis: true,
+              yaklasik: false,
+              kaynak: 'ALPEK merkezî kapasite verisi.',
+            );
+          }
+        }
       }
     }
 
@@ -1270,126 +614,16 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       akim: null,
       dogrulanmis: false,
       yaklasik: false,
-      kaynak: 'Bu iletken için kapasite modeli oluşturulamadı.',
+      kaynak: 'Bu iletken için doğrulanmış kapasite modeli bulunamadı.',
     );
   }
 
   /* ======================================================================
-   * R DEĞERLERİ
+   * AG EMPEDANS VERİSİ
    *
-   * Birim: ohm/km
+   * NYY/NAYY R20, 50 Hz X ve mümkün olan yerlerde dış çap artık merkezî
+   * cable_database.dart kaynağından alınır.
    * ==================================================================== */
-
-  double? _nyyR(double kesit) {
-    const data = <String, double>{
-      '1.5': 14.5,
-      '2.5': 8.87,
-      '4': 5.52,
-      '6': 3.69,
-      '10': 2.19,
-      '16': 1.38,
-      '25': 0.870,
-      '35': 0.627,
-      '50': 0.463,
-      '70': 0.321,
-      '95': 0.232,
-      '120': 0.184,
-      '150': 0.150,
-      '185': 0.121,
-      '240': 0.0926,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  double? _nayyR(double kesit) {
-    const data = <String, double>{
-      '10': 3.08,
-      '16': 1.91,
-      '25': 1.20,
-      '35': 0.868,
-      '50': 0.641,
-      '70': 0.443,
-      '95': 0.320,
-      '120': 0.253,
-      '150': 0.206,
-      '185': 0.164,
-      '240': 0.125,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  /* ======================================================================
-   * FİZİKSEL R HESABI
-   *
-   * Bakır:
-   * rho20 ≈ 0.0175 ohm.mm²/m
-   *
-   * Alüminyum:
-   * rho20 ≈ 0.0282 ohm.mm²/m
-   *
-   * Sıcaklık düzeltmesi yaklaşık olarak uygulanır.
-   * ==================================================================== */
-
-  double _fizikselR({
-    required double kesit,
-    required bool bakir,
-  }) {
-    final rho = bakir ? 0.0175 : 0.0282;
-
-    final alpha = bakir ? 0.00393 : 0.00403;
-
-    final referansSicaklik = 20.0;
-
-    final hedefSicaklik = doseme == 'Toprakta' ? 70.0 : 70.0;
-
-    final rhoSicaklik = rho * (1 + alpha * (hedefSicaklik - referansSicaklik));
-
-    return rhoSicaklik * 1000 / kesit;
-  }
-
-  /* ======================================================================
-   * X DEĞERLERİ
-   * ==================================================================== */
-
-  double? _nyyX(double kesit) {
-    const data = <String, double>{
-      '1.5': 0.115,
-      '2.5': 0.110,
-      '4': 0.105,
-      '6': 0.100,
-      '10': 0.095,
-      '16': 0.090,
-      '25': 0.085,
-      '35': 0.082,
-      '50': 0.080,
-      '70': 0.078,
-      '95': 0.076,
-      '120': 0.075,
-      '150': 0.074,
-      '185': 0.073,
-      '240': 0.072,
-    };
-
-    return data[_kesitAnahtari(kesit)];
-  }
-
-  double _yaklasikX({
-    required double kesit,
-  }) {
-    if (kesit <= 0) {
-      return 0.08;
-    }
-
-    final value = 0.075 + (0.12 / sqrt(kesit));
-
-    if (!value.isFinite || value <= 0) {
-      return 0.08;
-    }
-
-    return value;
-  }
 
   /* ======================================================================
    * EMPEDANS MOTORU
@@ -1409,112 +643,94 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       );
     }
 
-    if (iletkenTipi == 'NYY-Bakır Kablo') {
-      final r = _nyyR(kesit);
-      final x = _nyyX(kesit);
-
-      final kullanilanR = r ??
-          _fizikselR(
-            kesit: kesit,
-            bakir: true,
-          );
-
-      final kullanilanX = x ?? _yaklasikX(kesit: kesit);
-
-      return _HatEmpedansSonucu(
-        rOhmKm: kullanilanR / paralel,
-        xOhmKm: kullanilanX / paralel,
-        rYaklasik: r == null,
-        xYaklasik: x == null,
-        kaynak: paralel > 1
-            ? 'R/X verileri $paralel paralel kablo için eşdeğer empedansa dönüştürüldü.'
-            : (r == null
-                ? 'R fiziksel iletken modeliyle yaklaşık hesaplandı.'
-                : 'R teknik direnç tablosundan alındı.'),
+    if (iletkenTipi == 'NYY-Bakır Kablo' ||
+        iletkenTipi == 'NAYY-Aluminyum Kablo') {
+      final bool al = iletkenTipi == 'NAYY-Aluminyum Kablo';
+      final merkezi = merkeziAgEmpedansVerisi(
+        secim: secim,
+        al: al,
       );
-    }
 
-    if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
-      final r = _nayyR(kesit);
+      if (merkezi == null) {
+        return const _HatEmpedansSonucu(
+          rOhmKm: 0,
+          xOhmKm: 0,
+          rYaklasik: true,
+          xYaklasik: true,
+          kaynak:
+              'Seçilen AG kablo yapısı için merkezî R/X verisi bulunmuyor; yaklaşık empedans üretilmedi.',
+        );
+      }
 
-      final kullanilanR = r ??
-          _fizikselR(
-            kesit: kesit,
-            bakir: false,
-          );
+      final kaynak = paralel > 1
+          ? '${merkezi.kaynak}; $paralel paralel kablo için eşdeğer empedans.'
+          : merkezi.kaynak;
 
       return _HatEmpedansSonucu(
-        rOhmKm: kullanilanR / paralel,
-        xOhmKm: _yaklasikX(kesit: kesit) / paralel,
-        rYaklasik: r == null,
-        xYaklasik: true,
-        kaynak: paralel > 1
-            ? 'Alüminyum R/X verileri $paralel paralel kablo için eşdeğer empedansa dönüştürüldü.'
-            : (r == null
-                ? 'Alüminyum R fiziksel modelle yaklaşık hesaplandı.'
-                : 'Alüminyum R teknik direnç tablosundan alındı.'),
+        rOhmKm: merkezi.r20OhmKm / paralel,
+        xOhmKm: merkezi.x50HzOhmKm / paralel,
+        rYaklasik: false,
+        xYaklasik: false,
+        kaynak: kaynak,
       );
     }
 
     if (iletkenTipi == 'Açık İletken') {
       final r = _acikIletkenR(secim);
-
       if (r != null && r > 0) {
         return _HatEmpedansSonucu(
-          rOhmKm: r,
-          xOhmKm: _yaklasikX(kesit: kesit),
+          rOhmKm: r / paralel,
+          xOhmKm: 0,
           rYaklasik: false,
           xYaklasik: true,
-          kaynak: 'Açık iletken direnç verisi.',
+          kaynak:
+              'Merkezî açık iletken R verisi mevcut; doğrulanmış X verisi bulunmadığından reaktif empedans bileşeni hesaplanmadı.',
         );
       }
     }
 
     if (iletkenTipi == 'Alpek İletken') {
-      return _HatEmpedansSonucu(
-        rOhmKm: _fizikselR(
-              kesit: kesit,
-              bakir: false,
-            ) /
-            paralel,
-        xOhmKm: _yaklasikX(kesit: kesit) / paralel,
+      return const _HatEmpedansSonucu(
+        rOhmKm: 0,
+        xOhmKm: 0,
         rYaklasik: true,
         xYaklasik: true,
-        kaynak: paralel > 1
-            ? 'ALPEK için fiziksel iletken modeli ve paralel kablo eşdeğeri kullanıldı.'
-            : 'ALPEK için fiziksel iletken modeli.',
+        kaynak:
+            'ALPEK için merkezî kapasite verisi mevcut ancak doğrulanmış R/X verisi bulunmadığından gerilim düşümü empedans modeli oluşturulmadı.',
       );
     }
 
-    if (iletkenTipi == 'N2XSY Kablo') {
-      return _HatEmpedansSonucu(
-        rOhmKm: _fizikselR(
-              kesit: kesit,
-              bakir: true,
-            ) /
-            paralel,
-        xOhmKm: 0.10 / paralel,
-        rYaklasik: true,
-        xYaklasik: true,
-        kaynak: paralel > 1
-            ? 'OG bakır kablo için yaklaşık empedans modeli ve paralel kablo eşdeğeri kullanıldı.'
-            : 'OG bakır kablo için yaklaşık empedans modeli.',
+    if (iletkenTipi == 'N2XSY Kablo' || iletkenTipi == 'NA2XSY Kablo') {
+      final bool al = iletkenTipi == 'NA2XSY Kablo';
+      final double systemVoltageV =
+          (double.tryParse(ogGerilim.replaceAll(',', '.')) ?? 0) * 1000.0;
+      final merkezi = merkeziOgEmpedansVerisi(
+        kesit: kesit,
+        al: al,
+        systemVoltageV: systemVoltageV,
       );
-    }
 
-    if (iletkenTipi == 'NA2XSY Kablo') {
+      if (merkezi == null) {
+        return const _HatEmpedansSonucu(
+          rOhmKm: 0,
+          xOhmKm: 0,
+          rYaklasik: true,
+          xYaklasik: true,
+          kaynak:
+              'Seçilen OG gerilim sınıfı ve kablo kesiti için doğrulanmış R/X verisi bulunmuyor; yaklaşık empedans üretilmedi.',
+        );
+      }
+
+      final double r = merkezi.r20OhmKm;
+      final double x = merkezi.x50HzOhmKm;
       return _HatEmpedansSonucu(
-        rOhmKm: _fizikselR(
-              kesit: kesit,
-              bakir: false,
-            ) /
-            paralel,
-        xOhmKm: 0.10 / paralel,
-        rYaklasik: true,
-        xYaklasik: true,
+        rOhmKm: r / paralel,
+        xOhmKm: x / paralel,
+        rYaklasik: false,
+        xYaklasik: false,
         kaynak: paralel > 1
-            ? 'OG alüminyum kablo için yaklaşık empedans modeli ve paralel kablo eşdeğeri kullanıldı.'
-            : 'OG alüminyum kablo için yaklaşık empedans modeli.',
+            ? '${merkezi.kaynak} R/X verisi $paralel paralel kablo için eşdeğer empedansa dönüştürüldü.'
+            : '${merkezi.kaynak} — R20 ve trefoil indüktansından 50 Hz X hesaplandı.',
       );
     }
 
@@ -1560,7 +776,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
     final du = threePhase
         ? sqrt(3.0) * current * ((r * pf) + (x * sinPhi)) * distanceM
-        : 2.0 * current * r * distanceM;
+        : 2.0 * current * ((r * pf) + (x * sinPhi)) * distanceM;
 
     if (!du.isFinite || du < 0) {
       return null;
@@ -1664,7 +880,11 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
     final three = fazTipi == 'Trifaze';
 
-    final u = gerilim == 'OG' ? ogVolt : (three ? agVolt : agMonoVolt);
+    final u = gerilim == 'OG'
+        ? (double.tryParse(ogGerilim.replaceAll(',', '.')) ??
+                (esaDefaultOgVoltage / 1000)) *
+            1000
+        : (three ? agVolt : agMonoVolt);
 
     final i = three ? p * 1000.0 / (sqrt(3.0) * u * pf) : p * 1000.0 / (u * pf);
 
@@ -1745,7 +965,9 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       if (!capOk) {
         if (cap == null) {
           nedenler.add(
-            'Seçilen kesit için kapasite motoru sonuç üretemedi.',
+            kapasiteSonucu.kaynak.isNotEmpty
+                ? kapasiteSonucu.kaynak
+                : 'Seçilen kesit için kapasite motoru sonuç üretemedi.',
           );
         } else {
           final kapasiteMetni = kapasiteSonucu.yaklasik
@@ -2060,7 +1282,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Önerilen Kesit',
+                'Ön Seçim Kesiti',
                 style: TextStyle(
                   color: cText(),
                   fontWeight: FontWeight.w900,
@@ -2167,6 +1389,26 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
                 },
               ),
             ),
+            if (gerilim == 'OG') ...[
+              twoCol(
+                _secimAlani(
+                  label: 'OG Sistem Gerilimi',
+                  value: ogGerilim,
+                  items: esaOgVoltageOptions
+                      .map((v) => (double.parse(v) / 1000).toStringAsFixed(1))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() {
+                        ogGerilim = v;
+                        _temizleSonuc();
+                      });
+                    }
+                  },
+                ),
+                const SizedBox.shrink(),
+              ),
+            ],
             twoCol(
               Field(
                 controller: _gucCtrl,
@@ -2296,7 +1538,7 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
   String fazTipi = 'Trifaze';
   String iletkenTipi = 'Bakır';
 
-  double pf = 0.80;
+  double pf = esaDefaultPowerFactor;
 
   double hesaplananYuzde = double.nan;
   double hesaplananVolt = double.nan;
@@ -2314,76 +1556,6 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
     _mesafeCtrl.dispose();
     _kesitCtrl.dispose();
     super.dispose();
-  }
-
-  String _kesitAnahtari(double value) {
-    if (value == value.roundToDouble()) {
-      return value.toInt().toString();
-    }
-
-    return value.toString();
-  }
-
-  double? _rTablo(double s) {
-    if (iletkenTipi == 'Bakır') {
-      const data = <String, double>{
-        '1.5': 14.5,
-        '2.5': 8.87,
-        '4': 5.52,
-        '6': 3.69,
-        '10': 2.19,
-        '16': 1.38,
-        '25': 0.870,
-        '35': 0.627,
-        '50': 0.463,
-        '70': 0.321,
-        '95': 0.232,
-        '120': 0.184,
-        '150': 0.150,
-        '185': 0.121,
-        '240': 0.0926,
-      };
-
-      return data[_kesitAnahtari(s)];
-    }
-
-    const data = <String, double>{
-      '10': 3.08,
-      '16': 1.91,
-      '25': 1.20,
-      '35': 0.868,
-      '50': 0.641,
-      '70': 0.443,
-      '95': 0.320,
-      '120': 0.253,
-      '150': 0.206,
-      '185': 0.164,
-      '240': 0.125,
-    };
-
-    return data[_kesitAnahtari(s)];
-  }
-
-  double _fizikselR(double s) {
-    final rho = iletkenTipi == 'Bakır' ? 0.0175 : 0.0282;
-
-    final alpha = iletkenTipi == 'Bakır' ? 0.00393 : 0.00403;
-
-    const hedefSicaklik = 70.0;
-
-    final rho70 = rho * (1 + alpha * (hedefSicaklik - 20.0));
-
-    return rho70 * 1000.0 / s;
-  }
-
-  double _yaklasikX(double s) {
-    if (s <= 0) {
-      return 0.08;
-    }
-
-    final x = 0.075 + 0.12 / sqrt(s);
-
-    return x.isFinite && x > 0 ? x : 0.08;
   }
 
   void hesapla() {
@@ -2414,23 +1586,33 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
 
     final three = fazTipi == 'Trifaze';
 
-    final u = three ? 400.0 : 230.0;
+    final u = three ? esaAgThreePhaseVoltage : esaAgSinglePhaseVoltage;
 
     final i = three ? p * 1000.0 / (sqrt(3.0) * u * pf) : p * 1000.0 / (u * pf);
 
-    final rTablo = _rTablo(s);
+    final rOhmKm = merkeziAgBasitR20OhmKm(
+      s,
+      al: iletkenTipi != 'Bakır',
+    );
 
-    final rOhmKm = rTablo ?? _fizikselR(s);
+    final xOhmKm = merkeziAgBasitX50HzOhmKm(
+      s,
+      al: iletkenTipi != 'Bakır',
+    );
 
-    final xOhmKm = _yaklasikX(s);
-
-    if (rOhmKm <= 0 || !rOhmKm.isFinite) {
+    if (rOhmKm == null ||
+        rOhmKm <= 0 ||
+        !rOhmKm.isFinite ||
+        xOhmKm == null ||
+        xOhmKm <= 0 ||
+        !xOhmKm.isFinite) {
       setState(() {
         hesaplandi = true;
         hesaplananYuzde = double.nan;
         hesaplananVolt = double.nan;
         durumText = 'Empedans hesabı yapılamadı';
-        kaynak = 'İletken direnci hesaplanamadı.';
+        kaynak =
+            'Merkezî AG R/X verisi bulunamadı; yaklaşık empedans üretilmedi.';
         yaklasik = true;
       });
 
@@ -2448,8 +1630,9 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
       ),
     );
 
-    final du =
-        three ? sqrt(3.0) * i * ((r * pf) + (x * sinPhi)) * l : 2.0 * i * r * l;
+    final du = three
+        ? sqrt(3.0) * i * ((r * pf) + (x * sinPhi)) * l
+        : 2.0 * i * ((r * pf) + (x * sinPhi)) * l;
 
     final yuzde = du / u * 100.0;
 
@@ -2473,11 +1656,9 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
 
       hesaplananVolt = du;
 
-      yaklasik = rTablo == null;
+      yaklasik = false;
 
-      kaynak = rTablo == null
-          ? 'R değeri fiziksel iletken modeliyle yaklaşık hesaplandı.'
-          : 'R değeri teknik direnç tablosundan alındı.';
+      kaynak = 'Merkezî AG R20 ve 50 Hz X verileri kullanıldı.';
 
       durumText = iyi ? 'UYGUN' : 'UYGUN DEĞİL — kesit artırılmalı';
 
@@ -2577,10 +1758,9 @@ class _GerilimDusumuTabState extends State<_GerilimDusumuTab> {
           ),
         AdviceCard(
           title: 'Bilgi / Yardım',
-          text:
-              'Gerilim düşümü hesabında önce mevcut teknik direnç verileri kullanılır. '
-              'Kesit için doğrulanmış direnç değeri bulunmadığında iletken özdirenci ve sıcaklık modeliyle yaklaşık direnç hesaplanabilir. '
-              'Yaklaşık sonuçlar üretici katalog değeri olarak değerlendirilmemelidir.',
+          text: 'Gerilim düşümü hesabında merkezî AG R/X verileri kullanılır. '
+              'Seçilen kesit için doğrulanmış merkezî empedans verisi bulunmuyorsa yaklaşık R/X üretilmez ve sonuç hesaplanmadı olarak gösterilir. '
+              'Nihai seçimde gerçek üretici kablo verisi ve tesis koşulları ayrıca doğrulanmalıdır.',
         ),
       ],
     );

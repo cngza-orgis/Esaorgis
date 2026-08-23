@@ -1,0 +1,40 @@
+part of 'main.dart';
+
+const List<EsaTeknikKonu> esaDerinMotorKompanzasyon = [
+  EsaTeknikKonu(
+    id: 'motor-start-current',
+    kategori: 'Motorlar',
+    baslik: 'Motor kalkış akımı',
+    ozet: 'Motorun ilk enerjilendiği anda nominal çalışma akımının üzerine çıkabilen akımdır.',
+    nedir: 'Asenkron motorun ilk kalkışında rotor henüz senkron hıza yakın değildir ve şebekeden yüksek akım çekebilir.',
+    nasil: 'Motor üreticisinin kalkış akımı veya locked-rotor bilgisi esas alınır; yol verme yöntemi ve yük momenti ayrıca değerlendirilir.',
+    saha: 'Kablo, kesici, kontaktör ve jeneratör kapasitesi açısından kalkış akımı kritik olabilir.',
+    dikkat: 'Nominal akım ile kalkış akımı aynı değer değildir.',
+    ilgiliAraclar: 'Motor Koruma, Jeneratör',
+    kaynak: 'IEC 60034 serisi; üretici motor datasheeti',
+  ),
+  EsaTeknikKonu(
+    id: 'comp-step',
+    kategori: 'Kompanzasyon',
+    baslik: 'Kompanzasyon kademe tasarımı',
+    ozet: 'Kondansatör kademelerinin toplam reaktif gücü hedefe uygun ve yük değişimine cevap verecek şekilde bölüştürülmesidir.',
+    nedir: 'Kademe yapısı, kompanzasyon sisteminin küçük ve büyük reaktif yük değişimlerine ne kadar hassas cevap vereceğini belirler.',
+    nasil: 'Gerekli toplam kvar belirlenir; standart kondansatör değerleri ve hedef cosφ ile uygun kademeler oluşturulur.',
+    saha: 'Eşit kademeler her tesiste en iyi çözüm değildir. Değişken yüklerde artan kademe yapısı daha kontrollü olabilir.',
+    dikkat: 'Kademeleri sadece matematiksel olarak büyütmek yerine gerçek yük profilini ve standart kondansatör değerlerini değerlendirin.',
+    ilgiliAraclar: 'Kompanzasyon',
+    kaynak: 'Üretici kompanzasyon sistemleri; ilgili dağıtım/tesis kuralları',
+  ),
+  EsaTeknikKonu(
+    id: 'comp-inductive',
+    kategori: 'Kompanzasyon',
+    baslik: 'Endüktif yük',
+    ozet: 'Manyetik alan oluşturmak için reaktif güç çeken yük karakteridir.',
+    nedir: 'Motor, trafo ve bobin gibi ekipmanlarda akım gerilimin gerisinde kalabilir ve reaktif güç çekilebilir.',
+    nasil: 'Yükün cosφ değeri ve reaktif güç tüketimi ölçülerek kompanzasyon ihtiyacı değerlendirilir.',
+    saha: 'Motorların yük oranı değiştikçe reaktif güç ihtiyacı da değişebilir.',
+    dikkat: 'Her motor aynı reaktif gücü çekmez; gerçek işletme koşulları önemlidir.',
+    ilgiliAraclar: 'Kompanzasyon, Motor',
+    kaynak: 'İlgili tesis ve dağıtım kuralları; ölçüm verileri',
+  ),
+];

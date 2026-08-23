@@ -255,9 +255,29 @@ class _GesOtomatikTabState extends State<_GesOtomatikTab> {
   // AC ÖN HESAP PARAMETRELERİ
   // ==============================================================
 
-  static const double _acGerilim = 400.0;
+  static const double _acGerilim = esaAgThreePhaseVoltage;
 
-  static const double _acCosPhi = 0.95;
+  double acCosPhi = esaDefaultPowerFactor;
+  String acSistemTipi = 'Trifaze';
+  double inverterDcGerilim = 1000;
+
+  static const List<double> inverterDcGerilimleri = [
+    60,
+    96,
+    120,
+    150,
+    200,
+    250,
+    300,
+    400,
+    500,
+    600,
+    800,
+    1000,
+    1100,
+    1200,
+    1500,
+  ];
 
   @override
   void dispose() {
@@ -276,7 +296,8 @@ class _GesOtomatikTabState extends State<_GesOtomatikTab> {
       return 0;
     }
 
-    return gucKw * 1000 / (sqrt(3) * _acGerilim * _acCosPhi);
+    final double fazSayisiCarpani = acSistemTipi == 'Monofaze' ? 1.0 : sqrt(3);
+    return gucKw * 1000 / (fazSayisiCarpani * _acGerilim * acCosPhi);
   }
 
   // ==============================================================
@@ -674,6 +695,101 @@ class _GesOtomatikTabState extends State<_GesOtomatikTab> {
                 },
               ),
             ),
+            const SizedBox(height: 10),
+            twoCol(
+              Drop(
+                label: 'AC Sistem Tipi',
+                value: acSistemTipi,
+                items: const ['Monofaze', 'Trifaze'],
+                onChanged: (v) {
+                  setState(() {
+                    acSistemTipi = v ?? acSistemTipi;
+                    hesaplandi = false;
+                  });
+                },
+              ),
+              Drop(
+                label: 'İnverter DC Giriş Gerilimi',
+                value: inverterDcGerilim.toStringAsFixed(0),
+                items: inverterDcGerilimleri
+                    .map((e) => e.toStringAsFixed(0))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    inverterDcGerilim =
+                        double.tryParse(v ?? '') ?? inverterDcGerilim;
+                    hesaplandi = false;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+              decoration: BoxDecoration(
+                color: cCard(),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: cIcon().withValues(alpha: .28)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Güç Faktörü (cosφ)',
+                          style: TextStyle(
+                            color: cText(),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        acCosPhi.toStringAsFixed(2),
+                        style: TextStyle(
+                          color: cIcon(),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: acCosPhi.clamp(.70, 1.00),
+                    min: .70,
+                    max: 1.00,
+                    divisions: 30,
+                    activeColor: cIcon(),
+                    inactiveColor: cIcon().withValues(alpha: .18),
+                    label: acCosPhi.toStringAsFixed(2),
+                    onChanged: (v) {
+                      setState(() {
+                        acCosPhi = double.parse(v.toStringAsFixed(2));
+                        hesaplandi = false;
+                      });
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('0.70', style: TextStyle(color: cText().withValues(alpha: .72), fontSize: 11)),
+                        Text('0.80 varsayılan', style: TextStyle(color: cIcon(), fontSize: 11, fontWeight: FontWeight.w800)),
+                        Text('1.00', style: TextStyle(color: cText().withValues(alpha: .72), fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'AC inverter akımı hesabında seçilen değer kullanılır.',
+                    style: TextStyle(color: cText().withValues(alpha: .68), fontSize: 11.3, height: 1.3),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             twoCol(
               Drop(
@@ -781,6 +897,18 @@ class _GesOtomatikTabState extends State<_GesOtomatikTab> {
             if (hesaplandi)
               Column(
                 children: [
+                  uiResultCard(
+                    'AC Sistem / Güç Faktörü',
+                    '$acSistemTipi • cosφ ${acCosPhi.toStringAsFixed(2)}',
+                    'AC inverter akımı hesabında kullanıcı tarafından seçilen değer kullanılır.',
+                  ),
+
+                  uiResultCard(
+                    'İnverter DC Giriş Gerilimi',
+                    '${inverterDcGerilim.toStringAsFixed(0)} V DC',
+                    'String tasarımı inverterin izin verilen DC gerilim/akım sınırları ile ayrıca doğrulanmalıdır.',
+                  ),
+
                   uiResultCard(
                     t(
                       'İnvertör Kurgusu',
@@ -1326,52 +1454,10 @@ class _GesManuelTabState extends State<_GesManuelTab> {
             if (hesaplandi)
               Column(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(
-                      14,
-                    ),
-                    margin: const EdgeInsets.only(
-                      bottom: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cCardAlpha(),
-                      borderRadius: BorderRadius.circular(
-                        8,
-                      ),
-                      border: Border.all(
-                        color: cIcon().withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          t(
-                            'Sistem Performansı',
-                            'System Performance',
-                          ),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: cIcon(),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        Text(
-                          uretimBilgisi,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: cText(),
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                  ...resultSectionCardsFromText(
+                    uretimBilgisi,
+                    fallbackTitle: 'Sistem Performansı',
+                    icons: const [Icons.solar_power_outlined],
                   ),
                   ResultCard(
                     title: 'Değerlendirme',
@@ -1636,20 +1722,19 @@ class _GesCatiTasarimEkraniState extends State<GesCatiTasarimEkrani> {
               ),
             ],
           ),
-          if (sonuc.isNotEmpty)
-            SectionCard(
-              title: 'Otomatik Tasarım Sonucu',
-              children: [
-                Text(
-                  sonuc,
-                  style: TextStyle(
-                    color: cText(),
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
+          if (sonuc.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'Çatı Tasarımı Sonucu',
+              fallbackNote: 'Üretim ve maliyet değerleri ön tasarım niteliğindedir. Panel yerleşimi, gölgelenme, statik koşullar, inverter/koruma seçimi ve saha uygulaması ayrıca doğrulanmalıdır.',
+              icons: const [
+                Icons.roofing,
+                Icons.solar_power_outlined,
+                Icons.electrical_services_outlined,
               ],
             ),
+          ],
           const AdviceCard(
             title: 'Teknik not',
             text:
@@ -1663,3 +1748,945 @@ class _GesCatiTasarimEkraniState extends State<GesCatiTasarimEkrani> {
     );
   }
 }
+
+// ================================================================
+// FAZ 9 — GES AYRI ARAÇLAR
+// ================================================================
+
+class GesStringTasarimEkrani extends StatefulWidget {
+  const GesStringTasarimEkrani({super.key});
+  @override
+  State<GesStringTasarimEkrani> createState() => _GesStringTasarimEkraniState();
+}
+
+class _GesStringTasarimEkraniState extends State<GesStringTasarimEkrani> {
+  final panelVmp = TextEditingController(text: '40');
+  final panelVoc = TextEditingController(text: '49');
+  final panelImp = TextEditingController(text: '13');
+  final panelAdet = TextEditingController(text: '20');
+  String sistem = 'Trifaze';
+  double invVmax = 1000;
+  String sonuc = '';
+
+  @override
+  void dispose() {
+    panelVmp.dispose();
+    panelVoc.dispose();
+    panelImp.dispose();
+    panelAdet.dispose();
+    super.dispose();
+  }
+
+  void hesapla() {
+    final vmp = double.tryParse(panelVmp.text.replaceAll(',', '.')) ?? 0;
+    final voc = double.tryParse(panelVoc.text.replaceAll(',', '.')) ?? 0;
+    final imp = double.tryParse(panelImp.text.replaceAll(',', '.')) ?? 0;
+    final n = int.tryParse(panelAdet.text) ?? 0;
+    if (vmp <= 0 || voc <= 0 || imp <= 0 || n <= 0) {
+      setState(() => sonuc = 'Giriş değerlerini kontrol edin.');
+      return;
+    }
+    int maxSeries = max(1, (invVmax / voc).floor());
+    int minSeries = max(1, (invVmax * 0.65 / vmp).ceil());
+    int series = min(maxSeries, max(minSeries, 1));
+    if (series > n) series = n;
+    int parallel = (n / series).ceil();
+    final actualVmp = series * vmp;
+    final actualVoc = series * voc;
+    final actualCurrent = parallel * imp;
+    final voltageOk = actualVoc <= invVmax;
+    setState(() {
+      sonuc = 'Önerilen kurgu: $series seri × $parallel paralel\n'
+          'Vmp string: ${fmt2(actualVmp)} V\n'
+          'Voc string: ${fmt2(actualVoc)} V\n'
+          'Toplam DC akım: ${fmt2(actualCurrent)} A\n'
+          'İnverter DC gerilim sınırı: ${fmt2(invVmax)} V\n'
+          'Gerilim kontrolü: ${voltageOk ? 'Uygun ön aralık' : 'Uygun değil'}\n'
+          'Not: MPPT çalışma aralığı, maksimum DC akım, soğukta Voc artışı ve üretici sınırları ayrıca kontrol edilmelidir.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _GesToolScaffold(
+        title: 'GES String Tasarımı',
+        info:
+            'Panel seri/paralel kurgusunu inverter DC gerilim sınırına göre ön hesaplar. Kesin tasarımda üretici MPPT ve maksimum DC akım sınırları doğrulanmalıdır.',
+        child: Column(children: [
+          twoCol(Field(controller: panelVmp, label: 'Panel Vmp (V)'),
+              Field(controller: panelVoc, label: 'Panel Voc (V)')),
+          twoCol(Field(controller: panelImp, label: 'Panel Imp (A)'),
+              Field(controller: panelAdet, label: 'Toplam Panel Adedi')),
+          twoCol(
+            Drop(
+                label: 'Sistem Tipi',
+                value: sistem,
+                items: const ['Monofaze', 'Trifaze'],
+                onChanged: (v) => setState(() => sistem = v ?? sistem)),
+            Drop(
+                label: 'İnverter DC Vmax',
+                value: invVmax.toStringAsFixed(0),
+                items: _gesDcVoltajListe(),
+                onChanged: (v) =>
+                    setState(() => invVmax = double.tryParse(v ?? '') ?? 1000)),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+              onPressed: hesapla, child: const Text('STRING HESAPLA')),
+          if (sonuc.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'String Tasarımı Sonucu',
+              fallbackNote: 'Ön tasarım sonucudur; üretici MPPT gerilim/akım sınırları, soğukta Voc artışı ve gerçek saha koşulları ile doğrulanmalıdır.',
+              icons: const [Icons.account_tree_rounded, Icons.electrical_services_outlined],
+            ),
+          ],
+        ]),
+      );
+}
+
+class GesInverterAnaliziEkrani extends StatefulWidget {
+  const GesInverterAnaliziEkrani({super.key});
+  @override
+  State<GesInverterAnaliziEkrani> createState() =>
+      _GesInverterAnaliziEkraniState();
+}
+
+class _GesInverterAnaliziEkraniState extends State<GesInverterAnaliziEkrani> {
+  final guc = TextEditingController(text: '100');
+  final dcGuc = TextEditingController(text: '120');
+  final dcAkimi = TextEditingController(text: '180');
+  String sistem = 'Trifaze';
+  double acGerilim = esaAgThreePhaseVoltage;
+  double cosPhi = esaDefaultPowerFactor;
+  String sonuc = '';
+  @override
+  void dispose() {
+    guc.dispose();
+    dcGuc.dispose();
+    dcAkimi.dispose();
+    super.dispose();
+  }
+
+  void hesapla() {
+    final acKw = double.tryParse(guc.text.replaceAll(',', '.')) ?? 0;
+    final dckw = double.tryParse(dcGuc.text.replaceAll(',', '.')) ?? 0;
+    final dca = double.tryParse(dcAkimi.text.replaceAll(',', '.')) ?? 0;
+    if (acKw <= 0 || dckw <= 0) {
+      setState(() => sonuc = 'Giriş değerlerini kontrol edin.');
+      return;
+    }
+    final carp = sistem == 'Monofaze' ? 1.0 : sqrt(3);
+    final ia = acKw * 1000 / (carp * acGerilim * cosPhi);
+    final oran = dckw / acKw;
+    setState(() => sonuc =
+        'Hesaplanan AC akım: ${fmt2(ia)} A\nDC/AC oranı: ${fmt2(oran)}\nGirilen maksimum DC akım: ${fmt2(dca)} A\nAC sistem: $sistem • ${fmt2(acGerilim)} V • cosφ ${cosPhi.toStringAsFixed(2)}\nNot: İnverterin gerçek sürekli AC çıkış akımı ve DC giriş limitleri üretici datasheet üzerinden doğrulanmalıdır.');
+  }
+
+  @override
+  Widget build(BuildContext context) => _GesToolScaffold(
+        title: 'GES İnverter Analizi',
+        info:
+            'İnverterin AC/DC gücü, sistem tipi, AC gerilimi ve cosφ üzerinden ön analiz yapar.',
+        child: Column(children: [
+          twoCol(Field(controller: guc, label: 'AC İnverter Gücü (kW)'),
+              Field(controller: dcGuc, label: 'Toplam DC Güç (kWp)')),
+          twoCol(
+              Field(controller: dcAkimi, label: 'Maks. DC Giriş Akımı (A)'),
+              Drop(
+                  label: 'Sistem Tipi',
+                  value: sistem,
+                  items: const ['Monofaze', 'Trifaze'],
+                  onChanged: (v) => setState(() => sistem = v ?? sistem))),
+          twoCol(
+              Drop(
+                  label: 'AC Gerilim',
+                  value: acGerilim.toStringAsFixed(0),
+                  items: esaAcVoltageOptions,
+                  onChanged: (v) => setState(() => acGerilim =
+                      double.tryParse(v ?? '') ?? esaAgThreePhaseVoltage)),
+              Drop(
+                  label: 'AC Güç Faktörü (cosφ)',
+                  value: cosPhi.toStringAsFixed(2),
+                  items: const ['0.80', '0.85', '0.90', '0.95', '0.98', '1.00'],
+                  onChanged: (v) => setState(() => cosPhi =
+                      double.tryParse(v ?? '') ?? esaDefaultPowerFactor))),
+          const SizedBox(height: 12),
+          ElevatedButton(
+              onPressed: hesapla, child: const Text('İNVERTERİ ANALİZ ET')),
+          if (sonuc.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'İnverter Analiz Sonucu',
+              fallbackNote: 'Kesin seçim üretici datasheet, MPPT gerilim/akım limitleri ve şebeke bağlantı koşulları ile doğrulanmalıdır.',
+              icons: const [Icons.power_rounded, Icons.analytics_outlined],
+            ),
+          ],
+        ]),
+      );
+}
+
+// ============================================================================
+// GES TARIMSAL SİSTEM TASARIMI
+// Kullanıcıdan yalnızca saha için gerekli temel bilgiler alınır.
+// Panel/sürücü/motor ön boyutlandırması arka planda yapılır.
+// Kesin seçim; pompa eğrisi, boru hattı kayıpları, üretici verileri ve
+// saha koşulları ile ayrıca doğrulanmalıdır.
+// ============================================================================
+
+class GesTicarimTasarimEkrani extends StatefulWidget {
+  const GesTicarimTasarimEkrani({super.key});
+
+  @override
+  State<GesTicarimTasarimEkrani> createState() => _GesTicariState();
+}
+
+class _GesTicariState extends State<GesTicarimTasarimEkrani> {
+  final derinlik = TextEditingController(text: '50');
+  final saatlikSu = TextEditingController(text: '10');
+  final calismaSuresi = TextEditingController(text: '6');
+  final kotFarki = TextEditingController(text: '5');
+  final manuelMotor = TextEditingController();
+
+  String motorModu = 'Otomatik';
+  String sonuc = '';
+
+  @override
+  void dispose() {
+    derinlik.dispose();
+    saatlikSu.dispose();
+    calismaSuresi.dispose();
+    kotFarki.dispose();
+    manuelMotor.dispose();
+    super.dispose();
+  }
+
+  double _sayi(String value) {
+    return double.tryParse(value.replaceAll(',', '.').trim()) ?? 0;
+  }
+
+  double _standartMotorKw(double kw) {
+    const motorlar = <double>[
+      0.37,
+      0.55,
+      0.75,
+      1.1,
+      1.5,
+      2.2,
+      3.0,
+      4.0,
+      5.5,
+      7.5,
+      11,
+      15,
+      18.5,
+      22,
+      30,
+      37,
+      45,
+      55,
+      75,
+      90,
+      110,
+      132,
+      160,
+      200,
+    ];
+
+    for (final m in motorlar) {
+      if (m >= kw) return m;
+    }
+    return motorlar.last;
+  }
+
+  void hesapla() {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final hDerinlik = _sayi(derinlik.text);
+    final qSaat = _sayi(saatlikSu.text);
+    final saat = _sayi(calismaSuresi.text);
+    final kot = _sayi(kotFarki.text);
+
+    if (hDerinlik <= 0 || qSaat <= 0 || saat <= 0 || kot < 0) {
+      setState(() {
+        sonuc =
+            'Lütfen derinlik, debi, çalışma süresi ve kot bilgilerini kontrol edin.';
+      });
+      return;
+    }
+
+    if (motorModu == 'Manuel') {
+      final manuel = _sayi(manuelMotor.text);
+      if (manuel <= 0) {
+        setState(() {
+          sonuc = 'Manuel motor gücü seçildi. Motor gücünü kW olarak girin.';
+        });
+        return;
+      }
+    }
+
+    // Bu aşamada yalnızca statik yükseklik biliniyor.
+    // Boru uzunluğu/çapı, vana ve fittings bilgisi verilmediği için
+    // sürtünme kayıpları kesin olarak hesaplanamaz.
+    final toplamBasma = hDerinlik + kot;
+
+    // Q [m3/h] -> m3/s
+    final debiM3s = qSaat / 3600.0;
+
+    // Hidrolik güç: P = rho*g*Q*H
+    const rho = 1000.0;
+    const g = 9.81;
+
+    final hidrolikW = rho * g * debiM3s * toplamBasma;
+    final hidrolikKw = hidrolikW / 1000.0;
+
+    // Pompa + motor toplam verimi için ön tasarım katsayısı.
+    // Gerçek değer üretici/pompa çalışma noktasından alınmalıdır.
+    const toplamVerim = 0.65;
+
+    final hesaplananMotorKw = hidrolikKw / toplamVerim;
+
+    final secilenMotorKw = motorModu == 'Manuel'
+        ? _sayi(manuelMotor.text)
+        : _standartMotorKw(hesaplananMotorKw);
+
+    // Tarımsal solar pompa sisteminde PV gücü motor gücünün üzerinde
+    // ön boyutlandırılır. 1.30 burada ön tasarım katsayısıdır.
+    const pvMotorOrani = 1.30;
+    final gerekliPvKw = secilenMotorKw * pvMotorOrani;
+
+    // Referans panel: kesin panel modeli değildir.
+    const panelWp = 550.0;
+    const panelVmp = 41.5;
+    const panelVoc = 49.5;
+    const panelImp = 13.25;
+
+    final panelAdet = (gerekliPvKw * 1000 / panelWp).ceil();
+
+    // Sürücü üreticisi verilmediği için string gerilim kesinleştirilmez.
+    // 1000 V sınıfı bir DC üst sınır ve yaklaşık 500 V çalışma hedefi,
+    // yalnızca string ön değerlendirmesi için kullanılır.
+    const referansMinVmp = 500.0;
+    const referansMaxVoc = 1000.0;
+
+    int seri = (referansMinVmp / panelVmp).ceil();
+    if (seri < 1) seri = 1;
+
+    while (seri * panelVoc > referansMaxVoc && seri > 1) {
+      seri--;
+    }
+
+    if (seri > panelAdet) {
+      seri = panelAdet;
+    }
+
+    final paralel = (panelAdet / seri).ceil();
+    final stringVmp = seri * panelVmp;
+    final stringVoc = seri * panelVoc;
+    final toplamPvAkimi = paralel * panelImp;
+    final kuruluPvKw = panelAdet * panelWp / 1000.0;
+
+    final gunlukSu = qSaat * saat;
+
+    // Günlük enerji hesabı PV tarafında konuma ve kayıplara bağlıdır.
+    // Tarımsal pompa için burada 4.5 eşdeğer güneş saati ve %80 sistem
+    // performansı yalnızca ön tahmin olarak kullanılır.
+    const gunesSaati = 4.5;
+    const sistemPerformansi = 0.80;
+
+    final tahminiGunlukPvEnerji = kuruluPvKw * gunesSaati * sistemPerformansi;
+
+    // AC/DC mimarisi ön seçimdir; kesin seçim motor/pompa ve sürücü
+    // üretici verileriyle doğrulanmalıdır.
+    final motorMimarisi = secilenMotorKw <= 2.2
+        ? 'DC solar pompa motoru + MPPT kontrolörü (ön mimari)'
+        : 'AC trifaze dalgıç pompa motoru + MPPT-VFD (ön mimari)';
+
+    final surucuTipi = secilenMotorKw <= 2.2
+        ? 'MPPT solar pompa kontrolörü'
+        : 'Trifaze solar pompa sürücüsü / MPPT-VFD';
+
+    const surucuSiniflari = <double>[
+      0.75,
+      1.1,
+      1.5,
+      2.2,
+      3.0,
+      4.0,
+      5.5,
+      7.5,
+      11,
+      15,
+      18.5,
+      22,
+      30,
+      37,
+      45,
+      55,
+      75,
+      90,
+      110,
+      132,
+      160,
+      200,
+    ];
+
+    final surucuKw = surucuSiniflari.firstWhere(
+      (v) => v >= secilenMotorKw,
+      orElse: () => surucuSiniflari.last,
+    );
+
+    final pvMotorUygun = kuruluPvKw >= gerekliPvKw;
+    final manuelMotorYeterli =
+        motorModu != 'Manuel' || _sayi(manuelMotor.text) >= hesaplananMotorKw;
+
+    setState(() {
+      sonuc = 'SAHA GİRDİLERİ\n'
+          'Su çekim derinliği: ${fmt2(hDerinlik)} m\n'
+          'Saatlik su ihtiyacı: ${fmt2(qSaat)} m³/h\n'
+          'Günlük çalışma süresi: ${fmt2(saat)} saat\n'
+          'Çıkış kot farkı: ${fmt2(kot)} m\n\n'
+          'HİDROLİK HESAP\n'
+          'Günlük su ihtiyacı: ${fmt2(gunlukSu)} m³/gün\n'
+          'Ön toplam basma yüksekliği: ${fmt2(toplamBasma)} m\n'
+          'Hidrolik güç: ${fmt2(hidrolikKw)} kW\n'
+          'Ön toplam verim katsayısı: %${fmt2(toplamVerim * 100)}\n'
+          'Hesaplanan motor gücü: ${fmt2(hesaplananMotorKw)} kW\n\n'
+          'MOTOR / SÜRÜCÜ\n'
+          'Motor seçim yöntemi: $motorModu\n'
+          'Ön seçilen motor gücü: ${fmt2(secilenMotorKw)} kW\n'
+          'Sürücü: $surucuTipi\n'
+          'Sürücü gücü: Motor nominal gücü ve üretici şartlarına göre '
+          'en az ${fmt2(secilenMotorKw)} kW sınıfında değerlendirilmelidir.\n\n'
+          'PV SİSTEMİ\n'
+          'Ön gerekli PV gücü: ${fmt2(gerekliPvKw)} kWp\n'
+          'Referans panel: 550 Wp\n'
+          'Panel adedi: $panelAdet adet\n'
+          'Kurulu PV gücü: ${fmt2(kuruluPvKw)} kWp\n'
+          'Seri panel: $seri adet\n'
+          'Paralel string: $paralel adet\n'
+          'String Vmp: ${fmt2(stringVmp)} V\n'
+          'String Voc: ${fmt2(stringVoc)} V\n'
+          'Toplam PV akımı: ${fmt2(toplamPvAkimi)} A\n\n'
+          'ENERJİ ÖN TAHMİNİ\n'
+          'Tahmini günlük PV enerjisi: '
+          '${fmt2(tahminiGunlukPvEnerji)} kWh/gün\n'
+          'Kullanılan eşdeğer güneşlenme: '
+          '${fmt2(gunesSaati)} saat/gün\n'
+          'Kullanılan sistem performansı: %${fmt2(sistemPerformansi * 100)}\n\n'
+          'TEKNİK UYGUNLUK\n'
+          '${pvMotorUygun ? 'PV ön boyutu motor gücünü karşılıyor.' : 'PV ön boyutu motor gücünü karşılamıyor.'}\n\n'
+          'TEKNİK UYARI\n'
+          'Bu hesapta yalnızca statik basma yüksekliği kullanılmıştır. '
+          'Boru çapı/uzunluğu, fittings, vana ve filtre kayıpları verilmediği '
+          'için sürtünme kayıpları hesaba katılmamıştır. Gerçek pompa seçiminde '
+          'pompa eğrisi, çalışma noktası, motor nominal akımı, sürücü MPPT '
+          'aralığı, maksimum DC gerilimi/akımı ve soğukta Voc artışı ayrıca '
+          'doğrulanmalıdır. String sayıları da kullanılan sürücünün gerçek '
+          'MPPT ve DC giriş sınırlarıyla kesinleştirilmelidir.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _GesToolScaffold(
+      title: 'GES Tarımsal Sistem Tasarımı',
+      info: 'Tarımsal sulama için kullanıcıdan saha girdilerini alır; '
+          'debi ve basma yüksekliğinden hidrolik gücü, motoru, solar pompa '
+          'sürücüsünü ve PV ön boyutunu hesaplar. Kesin seçim pompa eğrisi '
+          've üretici verileriyle doğrulanmalıdır.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SectionCard(
+            title: 'Saha Bilgileri',
+            children: [
+              twoCol(
+                Field(
+                  controller: derinlik,
+                  label: 'Suyun çekileceği derinlik (m)',
+                ),
+                Field(
+                  controller: saatlikSu,
+                  label: 'Saatlik su ihtiyacı (m³/h)',
+                ),
+              ),
+              twoCol(
+                Field(
+                  controller: calismaSuresi,
+                  label: 'Günlük çalışma süresi (saat)',
+                ),
+                Field(
+                  controller: kotFarki,
+                  label: 'Çıkış kot farkı (m)',
+                ),
+              ),
+              Drop(
+                label: 'Motor gücü',
+                value: motorModu,
+                items: const ['Otomatik', 'Manuel'],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() {
+                    motorModu = v;
+                    sonuc = '';
+                  });
+                },
+              ),
+              if (motorModu == 'Manuel') ...[
+                const SizedBox(height: 10),
+                Field(
+                  controller: manuelMotor,
+                  label: 'Manuel motor gücü (kW)',
+                ),
+              ],
+              const SizedBox(height: 14),
+              calcButton(
+                'TARIMSAL SİSTEMİ HESAPLA',
+                hesapla,
+              ),
+            ],
+          ),
+          if (sonuc.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'Tarımsal Sistem Hesap Sonucu',
+              fallbackNote: 'Ön teknik boyutlandırmadır. Pompa çalışma noktası, boru kayıpları, motor/sürücü üretici verileri ve saha koşullarıyla kesinleştirilmelidir.',
+              icons: const [
+                Icons.water_drop_rounded,
+                Icons.speed_rounded,
+                Icons.settings_rounded,
+                Icons.solar_power_rounded,
+                Icons.bolt_rounded,
+                Icons.verified_rounded,
+                Icons.info_outline_rounded,
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// GES KARAVAN / MOBİL SİSTEM
+// Fatura Analizi benzeri yük sepeti mantığı:
+// cihaz -> güç -> adet -> çalışma süresi -> sepete ekle.
+// ============================================================================
+
+class _KaravanYuk {
+  final String cihaz;
+  final double gucW;
+  final int adet;
+  final double saat;
+
+  const _KaravanYuk({
+    required this.cihaz,
+    required this.gucW,
+    required this.adet,
+    required this.saat,
+  });
+
+  double get gunlukWh => gucW * adet * saat;
+  double get bagliW => gucW * adet;
+}
+
+class GesKaravanTasarimEkrani extends StatefulWidget {
+  const GesKaravanTasarimEkrani({super.key});
+
+  @override
+  State<GesKaravanTasarimEkrani> createState() => _GesKaravanState();
+}
+
+class _GesKaravanState extends State<GesKaravanTasarimEkrani> {
+  final cihazGucu = TextEditingController(text: '100');
+  final cihazAdedi = TextEditingController(text: '1');
+  final calismaSaati = TextEditingController(text: '4');
+
+  String cihaz = 'Buzdolabı';
+  String akuGerilimi = '12 V';
+  String sonuc = '';
+
+  final List<_KaravanYuk> yukler = [];
+
+  static const Map<String, double> _cihazGucTablosu = {
+    'Buzdolabı': 80,
+    'LED Aydınlatma': 10,
+    'Televizyon': 60,
+    'Laptop': 65,
+    'Telefon Şarjı': 15,
+    'Su Pompası': 60,
+    'Kahve Makinesi': 1000,
+    'Mikrodalga': 1200,
+    'Klima': 1200,
+    'Fan': 40,
+    'İnverterli Küçük Ev Aleti': 500,
+    'Diğer': 100,
+  };
+
+  @override
+  void dispose() {
+    cihazGucu.dispose();
+    cihazAdedi.dispose();
+    calismaSaati.dispose();
+    super.dispose();
+  }
+
+  double _sayi(String value) {
+    return double.tryParse(value.replaceAll(',', '.').trim()) ?? 0;
+  }
+
+  void _cihazDegisti(String? v) {
+    if (v == null) return;
+    setState(() {
+      cihaz = v;
+      cihazGucu.text = (_cihazGucTablosu[v] ?? 100).toStringAsFixed(0);
+      sonuc = '';
+    });
+  }
+
+  void _sepeteEkle() {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final guc = _sayi(cihazGucu.text);
+    final adet = int.tryParse(cihazAdedi.text.trim()) ?? 0;
+    final saat = _sayi(calismaSaati.text);
+
+    if (guc <= 0 || adet <= 0 || saat <= 0) {
+      setState(() {
+        sonuc = 'Cihaz gücü, adet ve çalışma süresini kontrol edin.';
+      });
+      return;
+    }
+
+    setState(() {
+      yukler.add(
+        _KaravanYuk(
+          cihaz: cihaz,
+          gucW: guc,
+          adet: adet,
+          saat: saat,
+        ),
+      );
+      sonuc = '';
+    });
+  }
+
+  void _sepetiTemizle() {
+    setState(() {
+      yukler.clear();
+      sonuc = '';
+    });
+  }
+
+  void hesapla() {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    if (yukler.isEmpty) {
+      setState(() {
+        sonuc = 'Önce en az bir cihazı sepete ekleyin.';
+      });
+      return;
+    }
+
+    final toplamGunlukWh = yukler.fold<double>(0, (sum, e) => sum + e.gunlukWh);
+
+    // Tüm yüklerin aynı anda çalıştığı en kötü durum üst sınırı.
+    final eszamanliW = yukler.fold<double>(0, (sum, e) => sum + e.bagliW);
+
+    final akuV = int.tryParse(akuGerilimi.replaceAll(' V', '').trim()) ?? 12;
+
+    const panelW = 450.0;
+    const panelVmp = 41.0;
+    const panelVoc = 49.0;
+    const panelImp = 11.0;
+
+    // Karavan için ön PV hesabı:
+    // 4 eşdeğer güneş saati ve %80 performans katsayısı.
+    const gunesSaati = 4.0;
+    const sistemVerimi = 0.80;
+
+    final gerekliPvW = toplamGunlukWh / (gunesSaati * sistemVerimi);
+
+    final panelAdet = (gerekliPvW / panelW).ceil();
+
+    // Akü nominal enerjisi:
+    // yaklaşık %50 kullanılabilir kapasite + %90 sistem varsayımı.
+    final gerekliAkuWh = toplamGunlukWh / (0.50 * 0.90);
+
+    final akuAh = gerekliAkuWh * 1000 / akuV;
+
+    // Aküye göre yaklaşık PV string ön kurgusu.
+    // Kesin seçim MPPT üretici sınırlarıyla doğrulanmalıdır.
+    int seri = (akuV * 1.5 / panelVmp).ceil();
+    if (seri < 1) seri = 1;
+
+    final paralel = (panelAdet / seri).ceil();
+
+    final stringVmp = seri * panelVmp;
+    final stringVoc = seri * panelVoc;
+    final toplamPvAkimi = paralel * panelImp;
+    final kuruluPvW = panelAdet * panelW;
+
+    const inverterSiniflari = <int>[
+      300,
+      600,
+      1000,
+      1500,
+      2000,
+      3000,
+      5000,
+      6000,
+      8000,
+      10000,
+    ];
+
+    final inverterHedefW = eszamanliW * 1.25;
+
+    final inverterW = inverterSiniflari.firstWhere(
+      (v) => v >= inverterHedefW,
+      orElse: () => inverterSiniflari.last,
+    );
+
+    final mpptTeorikAkimi = kuruluPvW / akuV;
+
+    final mpptOnSecim = (mpptTeorikAkimi * 1.25).ceil();
+
+    final pvKarsilama = kuruluPvW >= gerekliPvW;
+
+    setState(() {
+      sonuc = 'YÜK SEPETİ\n'
+          'Cihaz kalemi: ${yukler.length} adet\n'
+          'Günlük toplam tüketim: '
+          '${fmt2(toplamGunlukWh / 1000)} kWh/gün\n'
+          'Bağlı yük üst sınırı: '
+          '${fmt2(eszamanliW / 1000)} kW\n\n'
+          'PV SİSTEMİ\n'
+          'Gerekli PV gücü: '
+          '${fmt2(gerekliPvW / 1000)} kWp\n'
+          'Referans panel: 450 Wp\n'
+          'Panel adedi: $panelAdet adet\n'
+          'Kurulu PV gücü: '
+          '${fmt2(kuruluPvW / 1000)} kWp\n'
+          'Seri panel: $seri adet\n'
+          'Paralel string: $paralel adet\n'
+          'String Vmp: ${fmt2(stringVmp)} V\n'
+          'String Voc: ${fmt2(stringVoc)} V\n'
+          'Toplam PV akımı: ${fmt2(toplamPvAkimi)} A\n\n'
+          'AKÜ BANKASI\n'
+          'Akü sistemi: $akuV V\n'
+          'Yaklaşık gerekli nominal enerji: '
+          '${fmt2(gerekliAkuWh / 1000)} kWh\n'
+          'Yaklaşık akü kapasitesi: '
+          '${fmt2(akuAh)} Ah\n\n'
+          'MPPT / İNVERTER\n'
+          'MPPT teorik akımı: '
+          '${fmt2(mpptTeorikAkimi)} A\n'
+          'MPPT ön seçim: '
+          '$mpptOnSecim A sınıfı veya üstü\n'
+          'İnverter eşzamanlı yük üst sınıfı: '
+          '$inverterW W\n'
+          'İnverter hedefi: '
+          '${fmt2(inverterHedefW / 1000)} kW ve üzeri\n\n'
+          'SONUÇ\n'
+          '${pvKarsilama ? 'Ön PV boyutu günlük enerji ihtiyacını karşılıyor.' : 'Ön PV boyutu günlük enerji ihtiyacını karşılamıyor.'}\n\n'
+          'TEKNİK UYARI\n'
+          'Karavan sisteminde inverter seçimi yalnızca toplam bağlı güce göre '
+          'kesinleştirilmez. Kompresör, pompa, klima ve benzeri cihazların '
+          'kalkış akımları ayrıca dikkate alınmalıdır. Akü kapasitesi gerçek '
+          'kullanılabilir DoD, sıcaklık, akü üretici verisi ve hedef otonomiye '
+          'göre doğrulanmalıdır. MPPT maksimum PV gerilimi/akımı, soğukta '
+          'Voc artışı ve panel seri-paralel kurgusu kullanılan cihazın üretici '
+          'sınırlarıyla kesinleştirilmelidir.';
+    });
+  }
+
+  Widget _yukKarti(_KaravanYuk yuk, int index) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 2,
+        ),
+        leading: CircleAvatar(
+          backgroundColor: cIcon().withValues(alpha: .12),
+          child: Icon(
+            Icons.electrical_services_rounded,
+            color: cIcon(),
+          ),
+        ),
+        title: Text(
+          yuk.cihaz,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          '${fmt2(yuk.gucW)} W × ${yuk.adet} adet × '
+          '${fmt2(yuk.saat)} saat = '
+          '${fmt2(yuk.gunlukWh / 1000)} kWh/gün',
+        ),
+        trailing: IconButton(
+          tooltip: 'Sepetten çıkar',
+          icon: const Icon(Icons.delete_outline_rounded),
+          onPressed: () {
+            setState(() {
+              yukler.removeAt(index);
+              sonuc = '';
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _GesToolScaffold(
+      title: 'GES Karavan / Mobil Sistem Tasarımı',
+      info: 'Karavan ve mobil sistemlerde cihazları yük sepetine ekleyerek '
+          'günlük enerji ihtiyacını, PV gücünü, panel dizisini, akü kapasitesini, '
+          'MPPT ve inverter ön boyutunu hesaplar.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SectionCard(
+            title: 'Yük Sepetine Cihaz Ekle',
+            children: [
+              twoCol(
+                Drop(
+                  label: 'Cihaz',
+                  value: cihaz,
+                  items: _cihazGucTablosu.keys.toList(),
+                  onChanged: _cihazDegisti,
+                ),
+                Field(
+                  controller: cihazGucu,
+                  label: 'Cihaz Gücü (W)',
+                ),
+              ),
+              twoCol(
+                Field(
+                  controller: cihazAdedi,
+                  label: 'Adet',
+                ),
+                Field(
+                  controller: calismaSaati,
+                  label: 'Günlük çalışma (saat)',
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: _sepeteEkle,
+                icon: const Icon(Icons.add_shopping_cart_rounded),
+                label: const Text('SEPETE EKLE'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SectionCard(
+            title: 'Yük Sepeti',
+            children: [
+              if (yukler.isEmpty)
+                Text(
+                  'Henüz cihaz eklenmedi.',
+                  style: TextStyle(
+                    color: cText().withValues(alpha: .70),
+                  ),
+                )
+              else ...[
+                ...yukler.asMap().entries.map(
+                      (e) => _yukKarti(e.value, e.key),
+                    ),
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  onPressed: _sepetiTemizle,
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  label: const Text('SEPETİ TEMİZLE'),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          SectionCard(
+            title: 'Sistem Bilgileri',
+            children: [
+              Drop(
+                label: 'Akü Sistem Gerilimi',
+                value: akuGerilimi,
+                items: const ['12 V', '24 V', '48 V'],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() {
+                    akuGerilimi = v;
+                    sonuc = '';
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              calcButton(
+                'KARAVAN SİSTEMİNİ HESAPLA',
+                hesapla,
+              ),
+            ],
+          ),
+          if (sonuc.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...resultSectionCardsFromText(
+              sonuc,
+              fallbackTitle: 'Karavan / Mobil Sistem Hesap Sonucu',
+              fallbackNote: 'Ön boyutlandırmadır. MPPT/inverter üretici sınırları, akü üretici verileri, gerçek yük profili ve kalkış akımlarıyla kesinleştirilmelidir.',
+              icons: const [
+                Icons.shopping_cart_outlined,
+                Icons.solar_power_rounded,
+                Icons.battery_charging_full_rounded,
+                Icons.power_rounded,
+                Icons.verified_rounded,
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GesToolScaffold extends StatelessWidget {
+  final String title;
+  final String info;
+  final Widget child;
+  const _GesToolScaffold(
+      {required this.title, required this.info, required this.child});
+  @override
+  Widget build(BuildContext context) => AppScaffold(
+      title: title,
+      info: true,
+      onInfo: () => bilgiPopup(context, title, info),
+      body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: cInputBg(), borderRadius: BorderRadius.circular(8)),
+              child: child)));
+}
+
+List<String> _gesDcVoltajListe() => const [
+      '60',
+      '96',
+      '120',
+      '150',
+      '200',
+      '250',
+      '300',
+      '400',
+      '500',
+      '600',
+      '800',
+      '1000',
+      '1100',
+      '1200',
+      '1500'
+    ];

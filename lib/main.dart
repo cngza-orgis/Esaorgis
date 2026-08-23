@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 part 'app_theme.dart';
+part 'technical_constants.dart';
 part 'widgets.dart';
 part 'technical_data.dart';
+
 part 'ana_menu.dart';
 part 'hat_analizi.dart';
 part 'pano_malzeme.dart';
@@ -28,6 +30,37 @@ part 'dagitim_enh.dart';
 part 'yeralti_kablo.dart';
 part 'alpek_iletken.dart';
 part 'acik_iletken.dart';
+
+// =========================
+// TEKNİK KÜTÜPHANE
+// =========================
+// Model ve içerik dosyaları ayrı tutulur.
+// Böylece Teknik Kütüphane büyürken main.dart gereksiz yere şişmez.
+part 'teknik_kutuphane_model.dart';
+
+part 'ag_bilgileri.dart';
+part 'og_bilgileri.dart';
+part 'kablo_hat_bilgileri.dart';
+part 'koruma_bilgileri.dart';
+part 'motor_bilgileri.dart';
+part 'trafo_bilgileri.dart';
+part 'kompanzasyon_bilgileri.dart';
+part 'ges_bilgileri.dart';
+part 'topraklama_bilgileri.dart';
+part 'pano_salt_bilgileri.dart';
+part 'santiye_isg_bilgileri.dart';
+part 'sozluk.dart';
+
+// Derinleştirilmiş Teknik Kütüphane içerikleri
+part 'derin_koruma_olcum.dart';
+part 'derin_kablo.dart';
+part 'derin_ges.dart';
+part 'derin_motor_kompanzasyon.dart';
+
+// Tüm teknik kütüphane içeriklerini bir araya getiren yardımcı koleksiyon.
+part 'teknik_kutuphane_genisletme.dart';
+
+// Teknik Kütüphane ekranı
 part 'teknik_bilgiler.dart';
 
 void main() {
@@ -37,6 +70,7 @@ void main() {
 
 class SahaAsistaniApp extends StatelessWidget {
   const SahaAsistaniApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -46,7 +80,9 @@ class SahaAsistaniApp extends StatelessWidget {
           useMaterial3: true,
           scaffoldBackgroundColor: const Color(0xFFF4F7FB),
           colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0B5CC9), brightness: Brightness.light),
+            seedColor: const Color(0xFF0B5CC9),
+            brightness: Brightness.light,
+          ),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF073B7A),
             foregroundColor: Colors.white,
@@ -70,24 +106,32 @@ class SahaAsistaniApp extends StatelessWidget {
               side: BorderSide(color: Color(0xFFDCE6F2)),
             ),
           ),
-          inputDecorationTheme: const InputDecorationTheme(isDense: true),
+          inputDecorationTheme: const InputDecorationTheme(
+            isDense: true,
+          ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF18A957),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(42),
               shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(8))),
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
           ),
         );
+
         final dark = ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: const Color(0xFF101923),
           colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF2C9BEF), brightness: Brightness.dark),
+            seedColor: const Color(0xFF2C9BEF),
+            brightness: Brightness.dark,
+          ),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF061F40),
             foregroundColor: Colors.white,
@@ -106,8 +150,9 @@ class SahaAsistaniApp extends StatelessWidget {
             elevation: 0,
             margin: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                side: BorderSide(color: Color(0xFF304355))),
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              side: BorderSide(color: Color(0xFF304355)),
+            ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
@@ -115,14 +160,17 @@ class SahaAsistaniApp extends StatelessWidget {
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(42),
               shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(8))),
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
             ),
           ),
         );
+
         // Uygulamanın üst durum çubuğu ve alt sistem/navigasyon alanı,
         // uygulamanın koyu mavi kurumsal çerçevesiyle aynı renkte tutulur.
         final systemBarColor =
             isDark ? const Color(0xFF061F40) : const Color(0xFF073B7A);
+
         final systemUiStyle = SystemUiOverlayStyle(
           statusBarColor: systemBarColor,
           systemNavigationBarColor: systemBarColor,
@@ -138,14 +186,14 @@ class SahaAsistaniApp extends StatelessWidget {
           theme: light,
           darkTheme: dark,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          // Sistem durum çubuğu ve alt navigasyon alanı uygulamanın tamamında
-          // tek bir kurumsal renkle, üst/alt mavi barlarla aynı tonda tutulur.
-          // builder ile Navigator'ın içine sarıldığı için tüm menü ve araçlarda
-          // aynı SystemUiOverlayStyle geçerli olur.
+
+          // Sistem durum çubuğu ve alt navigasyon alanı uygulamanın
+          // tamamında tek kurumsal renkle tutulur.
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: systemUiStyle,
             child: child ?? const SizedBox.shrink(),
           ),
+
           home: const AnaMenu(),
         );
       },
