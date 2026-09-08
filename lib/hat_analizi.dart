@@ -368,6 +368,10 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
     setState(() {
       iletkenTipi = value;
 
+      if (iletkenTipi == 'Açık İletken' || iletkenTipi == 'Alpek İletken') {
+        doseme = 'Havada';
+      }
+
       final liste = _kesitler;
 
       kabloKesiti = liste.isNotEmpty ? liste.first : '';
@@ -466,7 +470,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
   /* ======================================================================
    * NYY KAPASİTE VERİSİ
    *
-   * NYY kapasite verisinin tek kaynağı cable_database.dart'dır. Böylece
+   * NYY kapasite verisinin tek kaynağı merkezî teknik veri tabanı'dır. Böylece
    * Hat Analizi ile Kablo Taşıma Kapasitesi aracı aynı KHA verisini kullanır.
    * ==================================================================== */
 
@@ -523,7 +527,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
 
     final bool toprakta = doseme == 'Toprakta';
 
-    // NYY Cu: mevcut cable_database.dart içindeki merkezi kapasite motoru.
+    // NYY Cu: mevcut merkezî teknik veri tabanı içindeki merkezi kapasite motoru.
     if (iletkenTipi == 'NYY-Bakır Kablo') {
       final value = nyyKapasiteSecimeGore(
         secim,
@@ -535,7 +539,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
           akim: value,
           dogrulanmis: true,
           yaklasik: false,
-          kaynak: 'Merkezî cable_database.dart NYY Cu kapasite verisi — '
+          kaynak: 'Merkezî NYY Cu kapasite verisi — '
               '${toprakta ? 'toprakta' : 'havada'}.',
         );
       }
@@ -548,7 +552,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
       );
     }
 
-    // NAYY Al: mevcut cable_database.dart içindeki merkezi kapasite motoru.
+    // NAYY Al: mevcut merkezî teknik veri tabanı içindeki merkezi kapasite motoru.
     if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
       final value = nayyKapasiteSecimeGore(
         secim,
@@ -560,7 +564,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
           akim: value,
           dogrulanmis: true,
           yaklasik: false,
-          kaynak: 'Merkezî cable_database.dart NAYY Al kapasite verisi — '
+          kaynak: 'Merkezî NAYY Al kapasite verisi — '
               '${toprakta ? 'toprakta' : 'havada'}.',
         );
       }
@@ -622,7 +626,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
    * AG EMPEDANS VERİSİ
    *
    * NYY/NAYY R20, 50 Hz X ve mümkün olan yerlerde dış çap artık merkezî
-   * cable_database.dart kaynağından alınır.
+   * merkezî teknik veri tabanı kaynağından alınır.
    * ==================================================================== */
 
   /* ======================================================================
@@ -849,6 +853,64 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
     return null;
   }
 
+  /* ======================================================================
+   * HAVADA SERİM MEKANİK UYARISI
+   *
+   * Bu kontrol bir "yasak" değildir. Büyük kesitli zırhsız AG kabloların
+   * havada kullanımında kablo ağırlığı, askılama/fiksaj, açıklık, direk/
+   * destek dayanımı ve rüzgar/buz yükleri ayrıca değerlendirilmelidir.
+   *
+   * ESA uygulama eşiği: 3x95+50 mm². Eşik aşılırsa hesap devam eder,
+   * yalnızca teknik uyarı gösterilir.
+   * ==================================================================== */
+
+  bool _havadaMekanikUyariGerekli(String secim) {
+    if (doseme != 'Havada') return false;
+
+    if (iletkenTipi != 'NYY-Bakır Kablo' &&
+        iletkenTipi != 'NAYY-Aluminyum Kablo') {
+      return false;
+    }
+
+    final temiz = _temizKesitMetni(secim);
+
+    // Paralel tek damarlı gösterimler için genel sayısal kesit kontrolü.
+    final parantez = RegExp(
+      r'^\s*(\d+)\s*x\s*\(\s*3\s*x\s*([0-9]+(?:[.,][0-9]+)?)',
+      caseSensitive: false,
+    ).firstMatch(temiz);
+
+    if (parantez != null) {
+      final s = double.tryParse(
+            (parantez.group(2) ?? '').replaceAll(',', '.'),
+          ) ??
+          0;
+
+      return s > 95.0;
+    }
+
+    // Normal AG gösterimlerinde faz iletkeni kesitini kontrol et.
+    final match = RegExp(
+      r'^\s*(?:\d+\s*x\s*)?([0-9]+(?:[.,][0-9]+)?)',
+      caseSensitive: false,
+    ).firstMatch(temiz);
+
+    final s = double.tryParse(
+          (match?.group(1) ?? '').replaceAll(',', '.'),
+        ) ??
+        0;
+
+    return s > 95.0;
+  }
+
+  String _havadaMekanikUyariMetni(String secim) {
+    return 'DİKKAT: $secim havada kullanımında kablo ağırlığı ve mekanik '
+        'koşullar ayrıca değerlendirilmelidir. Askılama/fiksaj yöntemi, '
+        'açıklık mesafesi, taşıyıcı/direk dayanımı ile rüzgar ve buz yükleri '
+        'kontrol edilmelidir. Nihai uygulamada üretici montaj şartları ve '
+        'tesis koşulları esas alınmalıdır.';
+  }
+
   String _onerilenDoseme() {
     return doseme;
   }
@@ -1042,6 +1104,19 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
    * SEÇİM ALANI
    * ==================================================================== */
 
+  List<String> _dosemeSekilleri() {
+    if (iletkenTipi == 'Açık İletken' || iletkenTipi == 'Alpek İletken') {
+      return const ['Havada'];
+    }
+
+    return const [
+      'Havada',
+      'Toprakta',
+      'Tavada',
+      'Boruda',
+    ];
+  }
+
   Widget _secimAlani({
     required String label,
     required String value,
@@ -1062,6 +1137,28 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
   /* ======================================================================
    * KAPASİTE KARTI
    * ==================================================================== */
+
+  String _kabloGosterimMetni(String secim) {
+    if (secim.trim().isEmpty) return secim;
+
+    if (iletkenTipi == 'NYY-Bakır Kablo') {
+      return '$secim NYY (Cu)';
+    }
+
+    if (iletkenTipi == 'NAYY-Aluminyum Kablo') {
+      return '$secim NAYY (Al)';
+    }
+
+    if (iletkenTipi == 'N2XSY Kablo') {
+      return '$secim N2XSY';
+    }
+
+    if (iletkenTipi == 'NA2XSY Kablo') {
+      return '$secim NA2XSY';
+    }
+
+    return secim;
+  }
 
   Widget _akimKapasiteKarti() {
     final String capText;
@@ -1292,7 +1389,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
           ),
           const SizedBox(height: 10),
           Text(
-            onerilenKesit!,
+            _kabloGosterimMetni(onerilenKesit!),
             style: TextStyle(
               color: cText(),
               fontWeight: FontWeight.w900,
@@ -1316,6 +1413,57 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
               style: TextStyle(
                 color: cText(),
                 fontSize: 12,
+              ),
+            ),
+          ],
+          if (_havadaMekanikUyariGerekli(onerilenKesit!)) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: cCard(),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: .75),
+                  width: 1.3,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 23,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Havada Serim — Mekanik Uyarı',
+                          style: TextStyle(
+                            color: cText(),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _havadaMekanikUyariMetni(onerilenKesit!),
+                          style: TextStyle(
+                            color: cText(),
+                            fontSize: 11,
+                            height: 1.35,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1433,12 +1581,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
               _secimAlani(
                 label: 'Döşeme Şekli',
                 value: doseme,
-                items: const [
-                  'Havada',
-                  'Toprakta',
-                  'Tavada',
-                  'Boruda',
-                ],
+                items: _dosemeSekilleri(),
                 onChanged: (v) {
                   if (v != null) {
                     setState(() {
@@ -1494,7 +1637,7 @@ class _HatAnaliziTabState extends State<_HatAnaliziTab> {
           children: [
             uiResultCard(
               'Seçilen kablo / iletken',
-              kabloKesiti.isEmpty ? '-' : kabloKesiti,
+              kabloKesiti.isEmpty ? '-' : _kabloGosterimMetni(kabloKesiti),
               'Kullanıcının mevcut hat için seçtiği kesit.',
             ),
             if (hesaplandi) ...[

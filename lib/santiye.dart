@@ -81,7 +81,11 @@ class _BoruTavaEkraniState extends State<BoruTavaEkrani> {
   // --------------------------------------------------------------
 
   double? _merkeziDisCap(String secim) {
-    return merkeziKabloDisCapGetir(secim);
+    return merkeziKabloDisCapGetirDetayli(
+      secim,
+      gerilim: gerilim,
+      iletken: iletken,
+    );
   }
 
   double? get otomatikKabloDisCap {
@@ -824,7 +828,11 @@ class _MakaraEkraniState extends State<MakaraEkrani> {
   }
 
   double? get _makaraMerkeziCap {
-    return merkeziKabloDisCapGetir(kesit);
+    return merkeziKabloDisCapGetirDetayli(
+      kesit,
+      gerilim: gerilim,
+      iletken: iletken,
+    );
   }
 
   String get _makaraDisCapMetin {

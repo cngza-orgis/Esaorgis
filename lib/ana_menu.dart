@@ -219,9 +219,9 @@ class _AnaMenuState extends State<AnaMenu> {
       SantiyeMenu(),
     ),
     const _Arac(
-      'Faturalama',
-      Icons.receipt_long_rounded,
-      FaturalamaMenu(),
+      'Fatura Tahminleme',
+      Icons.shopping_cart_rounded,
+      CihazSepetiEkrani(),
     ),
     const _Arac(
       'Teknik Bilgiler',
@@ -1290,40 +1290,6 @@ class SantiyeMenu extends StatelessWidget {
           ),
           Icons.all_inbox,
           const MakaraEkrani(),
-        ),
-      ],
-    );
-  }
-}
-
-// ============================================================
-// FATURALAMA
-// ============================================================
-
-class FaturalamaMenu extends StatelessWidget {
-  const FaturalamaMenu({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SubMenu(
-      title: t(
-        'Faturalama',
-        '',
-      ),
-      items: [
-        MenuItemData(
-          t(
-            'Fatura Tahminleme',
-            '',
-          ),
-          t(
-            'Cihaz sepetinden aylık kWh ve isteğe bağlı tutar',
-            '',
-          ),
-          Icons.shopping_cart_rounded,
-          const CihazSepetiEkrani(),
         ),
       ],
     );

@@ -172,8 +172,93 @@ const Map<String, double> merkeziKabloDisCapMm = <String, double>{
   '4x240+120 mm²': 60.0,
 };
 
-double? merkeziKabloDisCapGetir(String secim) =>
-    merkeziKabloDisCapMm[secim.trim()];
+// Genel / geriye dönük dış çap sorgusu.
+// Eski çağrılar için NYY (Cu) varsayılan alınır. Gerilim ve iletken
+// ayrımı gereken araçlar merkeziKabloDisCapGetirDetayli() kullanmalıdır.
+double? merkeziKabloDisCapGetir(String secim) {
+  final String key = _merkeziDisCapNormalize(secim);
+  return _merkeziNyyDisCapGenis[key] ?? merkeziKabloDisCapMm[key];
+}
+
+// Dış çap anahtarını normalize eder.
+// Örn. "2x(3x95+50) mm²" -> "3x95+50 mm²"
+String _merkeziDisCapNormalize(String secim) {
+  String s = secim.trim()
+      .replaceAll('×', 'x')
+      .replaceAll('\u00A0', ' ')
+      .replaceAll('MM²', 'mm²')
+      .replaceAll('mm2', 'mm²');
+
+  s = s.replaceAll(RegExp(r'\s+'), '');
+  s = s.replaceAll(RegExp(r'\s*\((?:Cu|Al)\)\s*$', caseSensitive: false), '');
+  s = s.replaceAll(
+    RegExp(r'\s+(?:NYY|NAYY|N2XSY|NA2XSY)\s*$', caseSensitive: false),
+    '',
+  );
+
+  final RegExpMatch? parallel = RegExp(r'^\d+x\((.+)\)\s*mm²$').firstMatch(s);
+  if (parallel != null) {
+    s = '${parallel.group(1)} mm²';
+  }
+
+  if (!s.endsWith('mm²')) {
+    s = '$s mm²';
+  }
+
+  return s;
+}
+
+// Nexans / üretici referanslarıyla doğrulanmış ek NYY dış çapları.
+// Mevcut merkezî tabloda bulunmayan seçimler için kullanılır.
+const Map<String, double> _merkeziNyyDisCapGenis = <String, double>{
+  // Tek damarlı YVV/NYY
+  '1x1,5 mm²': 5.8,
+  '1x2,5 mm²': 6.1,
+  '1x4 mm²': 7.0,
+  '1x6 mm²': 7.5,
+  '1x10 mm²': 8.7,
+  '1x16 mm²': 9.7,
+  '1x25 mm²': 11.3,
+  '1x35 mm²': 12.2,
+  '1x50 mm²': 13.7,
+  '1x70 mm²': 15.6,
+  '1x95 mm²': 17.9,
+  '1x120 mm²': 19.6,
+  '1x150 mm²': 21.3,
+  '1x185 mm²': 23.3,
+  '1x240 mm²': 26.2,
+
+  // İki damarlı YVV/NYY
+  '2x1,5 mm²': 11.1,
+  '2x2,5 mm²': 11.9,
+  '2x4 mm²': 13.7,
+  '2x6 mm²': 14.7,
+  '2x10 mm²': 16.8,
+  '2x16 mm²': 18.8,
+  '2x25 mm²': 22.1,
+  '2x35 mm²': 24.2,
+  '2x50 mm²': 27.7,
+  '2x70 mm²': 31.2,
+  '2x95 mm²': 35.7,
+  '2x120 mm²': 39.5,
+  '2x150 mm²': 43.9,
+  '2x185 mm²': 48.6,
+  '2x240 mm²': 55.1,
+
+  // Üç damarlı küçük kesitlerde mevcut merkezî veri korunur.
+  '3x1,5 mm²': 11.0,
+  '3x2,5 mm²': 12.0,
+  '3x4 mm²': 13.8,
+  '3x6 mm²': 15.3,
+  '3x10 mm²': 17.1,
+  '3x16 mm²': 19.0,
+
+  // 3 faz + azaltılmış nötr
+  '3x16+10 mm²': 21.0,
+
+  // Dört damarlı küçük kesitler
+  '4x1,5 mm²': 11.0,
+};
 
 const List<String> standartKabloSecimListesi = <String>[
   // ----------------------------------------------------------
@@ -303,26 +388,38 @@ List<String> agMonofazeKabloYapilari(Iterable<double> kesitler) {
   ];
 }
 
-const List<double> nayyKesitleriMerkezi = <double>[10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+const List<double> nayyKesitleriMerkezi = <double>[
+  10,
+  16,
+  25,
+  35,
+  50,
+  70,
+  95,
+  120,
+  150,
+  185,
+  240
+];
 
 List<String> merkeziAgMonofazeNayyKablolar() =>
     agMonofazeKabloYapilari(nayyKesitleriMerkezi);
 
 List<String> merkeziAgTrifazeNayyKablolar() => <String>[
-  ...nayyKesitleriMerkezi
-      .where((k) => k <= 10)
-      .map((k) => '4x${_formatKesitMerkezi(k)} mm²'),
-  '3x16+10 mm²',
-  '3x25+16 mm²',
-  '3x35+16 mm²',
-  '3x50+25 mm²',
-  '3x70+35 mm²',
-  '3x95+50 mm²',
-  '3x120+70 mm²',
-  '3x150+70 mm²',
-  '3x185+95 mm²',
-  '3x240+120 mm²',
-];
+      ...nayyKesitleriMerkezi
+          .where((k) => k <= 10)
+          .map((k) => '4x${_formatKesitMerkezi(k)} mm²'),
+      '3x16+10 mm²',
+      '3x25+16 mm²',
+      '3x35+16 mm²',
+      '3x50+25 mm²',
+      '3x70+35 mm²',
+      '3x95+50 mm²',
+      '3x120+70 mm²',
+      '3x150+70 mm²',
+      '3x185+95 mm²',
+      '3x240+120 mm²',
+    ];
 
 List<String> get merkeziAgMonofazeNyyKablolar {
   return agMonofazeKabloYapilari(nyyKesitleri);
@@ -393,39 +490,112 @@ List<String> get merkeziTrifazeKablolar {
 // ============================================================
 
 const Map<String, double> nyyTekDamarHavaAmp = <String, double>{
-  '1.5': 26, '2.5': 35, '4': 46, '6': 58, '10': 80, '16': 105,
-  '25': 140, '35': 175, '50': 215, '70': 270, '95': 335, '120': 390,
-  '150': 445, '185': 510, '240': 620,
+  '1.5': 26,
+  '2.5': 35,
+  '4': 46,
+  '6': 58,
+  '10': 80,
+  '16': 105,
+  '25': 140,
+  '35': 175,
+  '50': 215,
+  '70': 270,
+  '95': 335,
+  '120': 390,
+  '150': 445,
+  '185': 510,
+  '240': 620,
 };
 
 const Map<String, double> nyyTekDamarToprakAmp = <String, double>{
-  '1.5': 37, '2.5': 50, '4': 65, '6': 83, '10': 110, '16': 145,
-  '25': 190, '35': 235, '50': 280, '70': 350, '95': 420, '120': 480,
-  '150': 540, '185': 620, '240': 770,
+  '1.5': 37,
+  '2.5': 50,
+  '4': 65,
+  '6': 83,
+  '10': 110,
+  '16': 145,
+  '25': 190,
+  '35': 235,
+  '50': 280,
+  '70': 350,
+  '95': 420,
+  '120': 480,
+  '150': 540,
+  '185': 620,
+  '240': 770,
 };
 
+// 2 damarlı NYY (Cu) — YVV/NYY çok damarlı referans tablosu.
+// Referans: Nexans Türkiye Ürün Kataloğu 2026, YVV (TSE) / NYY (IEC),
+// 2 damarlı kablolar; havada 30 °C / toprakta 20 °C.
 const Map<String, double> nyyIkiDamarHavaAmp = <String, double>{
-  '1.5': 21, '2.5': 29, '4': 38, '6': 48, '10': 66,
+  '1.5': 22,
+  '2.5': 30,
+  '4': 40,
+  '6': 51,
+  '10': 70,
+  '16': 94,
+  '25': 119,
+  '35': 148,
+  '50': 180,
+  '70': 232,
+  '95': 282,
+  '120': 328,
+  '150': 379,
+  '185': 434,
+  '240': 514,
 };
 
 const Map<String, double> nyyIkiDamarToprakAmp = <String, double>{
-  '1.5': 30, '2.5': 41, '4': 53, '6': 66, '10': 88,
+  '1.5': 33,
+  '2.5': 42,
+  '4': 57,
+  '6': 72,
+  '10': 96,
+  '16': 125,
+  '25': 165,
+  '35': 198,
+  '50': 234,
+  '70': 288,
+  '95': 345,
+  '120': 392,
+  '150': 440,
+  '185': 497,
+  '240': 573,
 };
 
 const Map<String, double> nyyUcDamarHavaAmp = <String, double>{
-  '1.5': 18, '2.5': 25, '4': 34, '6': 44, '10': 60,
+  '1.5': 18,
+  '2.5': 25,
+  '4': 34,
+  '6': 44,
+  '10': 60,
 };
 
 const Map<String, double> nyyUcDamarToprakAmp = <String, double>{
-  '1.5': 27, '2.5': 36, '4': 46, '6': 58, '10': 77,
+  '1.5': 27,
+  '2.5': 36,
+  '4': 46,
+  '6': 58,
+  '10': 77,
 };
 
 const Map<String, double> nyyDortDamarHavaAmp = <String, double>{
-  '1.5': 18, '2.5': 25, '4': 34, '6': 44, '10': 60, '16': 80,
+  '1.5': 18,
+  '2.5': 25,
+  '4': 34,
+  '6': 44,
+  '10': 60,
+  '16': 80,
 };
 
 const Map<String, double> nyyDortDamarToprakAmp = <String, double>{
-  '1.5': 27, '2.5': 36, '4': 46, '6': 58, '10': 77, '16': 100,
+  '1.5': 27,
+  '2.5': 36,
+  '4': 46,
+  '6': 58,
+  '10': 77,
+  '16': 100,
 };
 
 const Map<String, double> nyyUcFazNNotHavaAmp = <String, double>{
@@ -496,7 +666,6 @@ double? nyyKapasiteSecimeGore(String secim, {required bool toprakta}) {
   return value == null ? null : value * paralel;
 }
 
-
 // ============================================================
 // NAYY ALÜMİNYUM PVC/PVC — MERKEZİ KHA VERİSİ
 // Kaynak: KMI NAYY teknik tabloları (IEC 60502-1).
@@ -506,36 +675,108 @@ double? nyyKapasiteSecimeGore(String secim, {required bool toprakta}) {
 // ============================================================
 
 const Map<String, double> nayyHava1xAmp = <String, double>{
-  '10': 50, '16': 68, '25': 91, '35': 112, '50': 138, '70': 175,
-  '95': 216, '120': 251, '150': 291, '185': 339, '240': 407,
+  '10': 50,
+  '16': 68,
+  '25': 91,
+  '35': 112,
+  '50': 138,
+  '70': 175,
+  '95': 216,
+  '120': 251,
+  '150': 291,
+  '185': 339,
+  '240': 407,
 };
 const Map<String, double> nayyToprak1xAmp = <String, double>{
-  '10': 58, '16': 76, '25': 97, '35': 117, '50': 138, '70': 169,
-  '95': 202, '120': 229, '150': 258, '185': 292, '240': 339,
+  '10': 58,
+  '16': 76,
+  '25': 97,
+  '35': 117,
+  '50': 138,
+  '70': 169,
+  '95': 202,
+  '120': 229,
+  '150': 258,
+  '185': 292,
+  '240': 339,
 };
 const Map<String, double> nayyHava2xAmp = <String, double>{
-  '10': 54, '16': 73, '25': 94, '35': 116, '50': 141, '70': 178,
-  '95': 218, '120': 253, '150': 285, '185': 331, '240': 390,
+  '10': 54,
+  '16': 73,
+  '25': 94,
+  '35': 116,
+  '50': 141,
+  '70': 178,
+  '95': 218,
+  '120': 253,
+  '150': 285,
+  '185': 331,
+  '240': 390,
 };
 const Map<String, double> nayyToprak2xAmp = <String, double>{
-  '10': 61, '16': 81, '25': 103, '35': 125, '50': 148, '70': 183,
-  '95': 219, '120': 250, '150': 279, '185': 317, '240': 366,
+  '10': 61,
+  '16': 81,
+  '25': 103,
+  '35': 125,
+  '50': 148,
+  '70': 183,
+  '95': 219,
+  '120': 250,
+  '150': 279,
+  '185': 317,
+  '240': 366,
 };
 const Map<String, double> nayyHava3xAmp = <String, double>{
-  '10': 46, '16': 62, '25': 81, '35': 100, '50': 126, '70': 158,
-  '95': 194, '120': 225, '150': 257, '185': 297, '240': 352,
+  '10': 46,
+  '16': 62,
+  '25': 81,
+  '35': 100,
+  '50': 126,
+  '70': 158,
+  '95': 194,
+  '120': 225,
+  '150': 257,
+  '185': 297,
+  '240': 352,
 };
 const Map<String, double> nayyToprak3xAmp = <String, double>{
-  '10': 52, '16': 69, '25': 88, '35': 106, '50': 131, '70': 160,
-  '95': 192, '120': 219, '150': 245, '185': 278, '240': 322,
+  '10': 52,
+  '16': 69,
+  '25': 88,
+  '35': 106,
+  '50': 131,
+  '70': 160,
+  '95': 192,
+  '120': 219,
+  '150': 245,
+  '185': 278,
+  '240': 322,
 };
 const Map<String, double> nayyHava4xAmp = <String, double>{
-  '10': 53, '16': 71, '25': 93, '35': 115, '50': 134, '70': 167,
-  '95': 207, '120': 240, '150': 277, '185': 316, '240': 377,
+  '10': 53,
+  '16': 71,
+  '25': 93,
+  '35': 115,
+  '50': 134,
+  '70': 167,
+  '95': 207,
+  '120': 240,
+  '150': 277,
+  '185': 316,
+  '240': 377,
 };
 const Map<String, double> nayyToprak4xAmp = <String, double>{
-  '10': 59, '16': 77, '25': 99, '35': 119, '50': 135, '70': 165,
-  '95': 198, '120': 225, '150': 254, '185': 286, '240': 332,
+  '10': 59,
+  '16': 77,
+  '25': 99,
+  '35': 119,
+  '50': 135,
+  '70': 165,
+  '95': 198,
+  '120': 225,
+  '150': 254,
+  '185': 286,
+  '240': 332,
 };
 
 const Map<String, double> nayyUcFazNNotHavaAmp = <String, double>{
@@ -584,7 +825,7 @@ double? nayyKapasiteSecimeGore(String secim, {required bool toprakta}) {
   final damar = int.tryParse(m.group(1)!) ?? 0;
   final kesit = m.group(2)!.replaceAll(',', '.');
 
-  final Map<String,double>? table = switch (damar) {
+  final Map<String, double>? table = switch (damar) {
     1 => toprakta ? nayyToprak1xAmp : nayyHava1xAmp,
     2 => toprakta ? nayyToprak2xAmp : nayyHava2xAmp,
     3 => toprakta ? nayyToprak3xAmp : nayyHava3xAmp,
@@ -594,7 +835,6 @@ double? nayyKapasiteSecimeGore(String secim, {required bool toprakta}) {
   final value = table?[kesit];
   return value == null ? null : value * paralel;
 }
-
 
 // ============================================================
 // OG XLPE KABLO KHA — MERKEZİ VERİ KAYNAĞI
@@ -607,27 +847,73 @@ double? nayyKapasiteSecimeGore(String secim, {required bool toprakta}) {
 // ============================================================
 
 const List<double> ogKhaKesitleri = <double>[
-  35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500,
+  35,
+  50,
+  70,
+  95,
+  120,
+  150,
+  185,
+  240,
+  300,
+  400,
+  500,
 ];
 
 const Map<String, double> ogN2xsyHavaA = <String, double>{
-  '35': 193, '50': 231, '70': 289, '95': 354, '120': 409,
-  '150': 464, '185': 532, '240': 631, '300': 722, '400': 837, '500': 961,
+  '35': 193,
+  '50': 231,
+  '70': 289,
+  '95': 354,
+  '120': 409,
+  '150': 464,
+  '185': 532,
+  '240': 631,
+  '300': 722,
+  '400': 837,
+  '500': 961,
 };
 
 const Map<String, double> ogN2xsyToprakA = <String, double>{
-  '35': 181, '50': 213, '70': 258, '95': 309, '120': 349,
-  '150': 390, '185': 438, '240': 506, '300': 565, '400': 635, '500': 711,
+  '35': 181,
+  '50': 213,
+  '70': 258,
+  '95': 309,
+  '120': 349,
+  '150': 390,
+  '185': 438,
+  '240': 506,
+  '300': 565,
+  '400': 635,
+  '500': 711,
 };
 
 const Map<String, double> ogNa2xsyHavaA = <String, double>{
-  '35': 151, '50': 182, '70': 226, '95': 278, '120': 321,
-  '150': 364, '185': 420, '240': 501, '300': 578, '400': 679, '500': 789,
+  '35': 151,
+  '50': 182,
+  '70': 226,
+  '95': 278,
+  '120': 321,
+  '150': 364,
+  '185': 420,
+  '240': 501,
+  '300': 578,
+  '400': 679,
+  '500': 789,
 };
 
 const Map<String, double> ogNa2xsyToprakA = <String, double>{
-  '35': 143, '50': 167, '70': 205, '95': 243, '120': 277,
-  '150': 311, '185': 351, '240': 408, '300': 459, '400': 521, '500': 592,
+  '35': 143,
+  '50': 167,
+  '70': 205,
+  '95': 243,
+  '120': 277,
+  '150': 311,
+  '185': 351,
+  '240': 408,
+  '300': 459,
+  '400': 521,
+  '500': 592,
 };
 
 String _ogKhaKey(double kesit) => kesit == kesit.roundToDouble()
@@ -720,55 +1006,198 @@ class MerkeziOgEmpedansVerisi {
     required this.kaynak,
   });
 
-  double get x50HzOhmKm =>
-      2 * pi * 50.0 * (inductanceTrefoilMhKm / 1000.0);
+  double get x50HzOhmKm => 2 * pi * 50.0 * (inductanceTrefoilMhKm / 1000.0);
 }
 
-const Map<String, MerkeziOgEmpedansVerisi> _og1220N2xsy = <String, MerkeziOgEmpedansVerisi>{
-  '35': MerkeziOgEmpedansVerisi(r20OhmKm: 0.524, inductanceTrefoilMhKm: 0.45, outerDiameterMm: 26.3, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '50': MerkeziOgEmpedansVerisi(r20OhmKm: 0.387, inductanceTrefoilMhKm: 0.42, outerDiameterMm: 27.6, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '70': MerkeziOgEmpedansVerisi(r20OhmKm: 0.268, inductanceTrefoilMhKm: 0.40, outerDiameterMm: 29.1, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '95': MerkeziOgEmpedansVerisi(r20OhmKm: 0.193, inductanceTrefoilMhKm: 0.38, outerDiameterMm: 31.2, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '120': MerkeziOgEmpedansVerisi(r20OhmKm: 0.153, inductanceTrefoilMhKm: 0.36, outerDiameterMm: 33.0, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '150': MerkeziOgEmpedansVerisi(r20OhmKm: 0.124, inductanceTrefoilMhKm: 0.36, outerDiameterMm: 34.3, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '185': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0991, inductanceTrefoilMhKm: 0.35, outerDiameterMm: 36.8, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '240': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0754, inductanceTrefoilMhKm: 0.33, outerDiameterMm: 38.8, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '300': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0601, inductanceTrefoilMhKm: 0.32, outerDiameterMm: 42.1, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '400': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0470, inductanceTrefoilMhKm: 0.31, outerDiameterMm: 44.5, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '500': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0366, inductanceTrefoilMhKm: 0.30, outerDiameterMm: 48.0, kaynak: 'Nexans N2XSY 12/20 kV'),
-  '630': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0283, inductanceTrefoilMhKm: 0.29, outerDiameterMm: 52.5, kaynak: 'Nexans N2XSY 12/20 kV'),
+const Map<String, MerkeziOgEmpedansVerisi> _og1220N2xsy =
+    <String, MerkeziOgEmpedansVerisi>{
+  '35': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.524,
+      inductanceTrefoilMhKm: 0.45,
+      outerDiameterMm: 26.3,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '50': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.387,
+      inductanceTrefoilMhKm: 0.42,
+      outerDiameterMm: 27.6,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '70': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.268,
+      inductanceTrefoilMhKm: 0.40,
+      outerDiameterMm: 29.1,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '95': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.193,
+      inductanceTrefoilMhKm: 0.38,
+      outerDiameterMm: 31.2,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '120': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.153,
+      inductanceTrefoilMhKm: 0.36,
+      outerDiameterMm: 33.0,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '150': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.124,
+      inductanceTrefoilMhKm: 0.36,
+      outerDiameterMm: 34.3,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '185': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0991,
+      inductanceTrefoilMhKm: 0.35,
+      outerDiameterMm: 36.8,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '240': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0754,
+      inductanceTrefoilMhKm: 0.33,
+      outerDiameterMm: 38.8,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '300': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0601,
+      inductanceTrefoilMhKm: 0.32,
+      outerDiameterMm: 42.1,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '400': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0470,
+      inductanceTrefoilMhKm: 0.31,
+      outerDiameterMm: 44.5,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '500': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0366,
+      inductanceTrefoilMhKm: 0.30,
+      outerDiameterMm: 48.0,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
+  '630': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0283,
+      inductanceTrefoilMhKm: 0.29,
+      outerDiameterMm: 52.5,
+      kaynak: 'Nexans N2XSY 12/20 kV'),
 };
 
-const Map<String, MerkeziOgEmpedansVerisi> _og1220Na2xsy = <String, MerkeziOgEmpedansVerisi>{
-  '35': MerkeziOgEmpedansVerisi(r20OhmKm: 0.868, inductanceTrefoilMhKm: 0.454, outerDiameterMm: 25.3, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '50': MerkeziOgEmpedansVerisi(r20OhmKm: 0.641, inductanceTrefoilMhKm: 0.431, outerDiameterMm: 26.5, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '70': MerkeziOgEmpedansVerisi(r20OhmKm: 0.443, inductanceTrefoilMhKm: 0.405, outerDiameterMm: 28.5, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '95': MerkeziOgEmpedansVerisi(r20OhmKm: 0.320, inductanceTrefoilMhKm: 0.387, outerDiameterMm: 30.1, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '120': MerkeziOgEmpedansVerisi(r20OhmKm: 0.253, inductanceTrefoilMhKm: 0.371, outerDiameterMm: 31.6, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '150': MerkeziOgEmpedansVerisi(r20OhmKm: 0.206, inductanceTrefoilMhKm: 0.361, outerDiameterMm: 33.1, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '185': MerkeziOgEmpedansVerisi(r20OhmKm: 0.164, inductanceTrefoilMhKm: 0.350, outerDiameterMm: 35.0, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '240': MerkeziOgEmpedansVerisi(r20OhmKm: 0.125, inductanceTrefoilMhKm: 0.335, outerDiameterMm: 37.3, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '300': MerkeziOgEmpedansVerisi(r20OhmKm: 0.100, inductanceTrefoilMhKm: 0.325, outerDiameterMm: 39.6, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '400': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0778, inductanceTrefoilMhKm: 0.316, outerDiameterMm: 43.2, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '500': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0605, inductanceTrefoilMhKm: 0.305, outerDiameterMm: 46.4, kaynak: '12/20 kV NA2XSY teknik tablosu'),
-  '630': MerkeziOgEmpedansVerisi(r20OhmKm: 0.0469, inductanceTrefoilMhKm: 0.297, outerDiameterMm: 52.8, kaynak: '12/20 kV NA2XSY teknik tablosu'),
+const Map<String, MerkeziOgEmpedansVerisi> _og1220Na2xsy =
+    <String, MerkeziOgEmpedansVerisi>{
+  '35': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.868,
+      inductanceTrefoilMhKm: 0.454,
+      outerDiameterMm: 25.3,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '50': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.641,
+      inductanceTrefoilMhKm: 0.431,
+      outerDiameterMm: 26.5,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '70': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.443,
+      inductanceTrefoilMhKm: 0.405,
+      outerDiameterMm: 28.5,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '95': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.320,
+      inductanceTrefoilMhKm: 0.387,
+      outerDiameterMm: 30.1,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '120': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.253,
+      inductanceTrefoilMhKm: 0.371,
+      outerDiameterMm: 31.6,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '150': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.206,
+      inductanceTrefoilMhKm: 0.361,
+      outerDiameterMm: 33.1,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '185': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.164,
+      inductanceTrefoilMhKm: 0.350,
+      outerDiameterMm: 35.0,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '240': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.125,
+      inductanceTrefoilMhKm: 0.335,
+      outerDiameterMm: 37.3,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '300': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.100,
+      inductanceTrefoilMhKm: 0.325,
+      outerDiameterMm: 39.6,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '400': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0778,
+      inductanceTrefoilMhKm: 0.316,
+      outerDiameterMm: 43.2,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '500': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0605,
+      inductanceTrefoilMhKm: 0.305,
+      outerDiameterMm: 46.4,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
+  '630': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.0469,
+      inductanceTrefoilMhKm: 0.297,
+      outerDiameterMm: 52.8,
+      kaynak: '12/20 kV NA2XSY teknik tablosu'),
 };
 
-const Map<String, MerkeziOgEmpedansVerisi> _og2035N2xsyEmpedans = <String, MerkeziOgEmpedansVerisi>{
-  '50': MerkeziOgEmpedansVerisi(r20OhmKm: 0.387, inductanceTrefoilMhKm: 0.47, outerDiameterMm: 34.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
-  '70': MerkeziOgEmpedansVerisi(r20OhmKm: 0.268, inductanceTrefoilMhKm: 0.45, outerDiameterMm: 36.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
-  '95': MerkeziOgEmpedansVerisi(r20OhmKm: 0.193, inductanceTrefoilMhKm: 0.43, outerDiameterMm: 38.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
-  '120': MerkeziOgEmpedansVerisi(r20OhmKm: 0.153, inductanceTrefoilMhKm: 0.41, outerDiameterMm: 40.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
-  '150': MerkeziOgEmpedansVerisi(r20OhmKm: 0.124, inductanceTrefoilMhKm: 0.40, outerDiameterMm: 41.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
-  '185': MerkeziOgEmpedansVerisi(r20OhmKm: 0.099, inductanceTrefoilMhKm: 0.39, outerDiameterMm: 43.0, kaynak: 'Nexans N2XSY 20,3/35 kV'),
+const Map<String, MerkeziOgEmpedansVerisi> _og2035N2xsyEmpedans =
+    <String, MerkeziOgEmpedansVerisi>{
+  '50': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.387,
+      inductanceTrefoilMhKm: 0.47,
+      outerDiameterMm: 34.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
+  '70': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.268,
+      inductanceTrefoilMhKm: 0.45,
+      outerDiameterMm: 36.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
+  '95': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.193,
+      inductanceTrefoilMhKm: 0.43,
+      outerDiameterMm: 38.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
+  '120': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.153,
+      inductanceTrefoilMhKm: 0.41,
+      outerDiameterMm: 40.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
+  '150': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.124,
+      inductanceTrefoilMhKm: 0.40,
+      outerDiameterMm: 41.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
+  '185': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.099,
+      inductanceTrefoilMhKm: 0.39,
+      outerDiameterMm: 43.0,
+      kaynak: 'Nexans N2XSY 20,3/35 kV'),
 };
 
-const Map<String, MerkeziOgEmpedansVerisi> _og2035Na2xsyEmpedans = <String, MerkeziOgEmpedansVerisi>{
-  '50': MerkeziOgEmpedansVerisi(r20OhmKm: 0.641, inductanceTrefoilMhKm: 0.48, outerDiameterMm: 34.0, kaynak: 'Nexans NA2XSY 20,3/35 kV'),
-  '95': MerkeziOgEmpedansVerisi(r20OhmKm: 0.320, inductanceTrefoilMhKm: 0.42, outerDiameterMm: 37.2, kaynak: 'Nexans NA2XSY 20,3/35 kV'),
-  '120': MerkeziOgEmpedansVerisi(r20OhmKm: 0.253, inductanceTrefoilMhKm: 0.41, outerDiameterMm: 39.0, kaynak: 'Nexans NA2XSY 20,3/35 kV'),
-  '150': MerkeziOgEmpedansVerisi(r20OhmKm: 0.206, inductanceTrefoilMhKm: 0.40, outerDiameterMm: 40.0, kaynak: 'Nexans NA2XSY 20,3/35 kV'),
-  '185': MerkeziOgEmpedansVerisi(r20OhmKm: 0.164, inductanceTrefoilMhKm: 0.38, outerDiameterMm: 43.0, kaynak: 'Nexans NA2XSY 20,3/35 kV'),
+const Map<String, MerkeziOgEmpedansVerisi> _og2035Na2xsyEmpedans =
+    <String, MerkeziOgEmpedansVerisi>{
+  '50': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.641,
+      inductanceTrefoilMhKm: 0.48,
+      outerDiameterMm: 34.0,
+      kaynak: 'Nexans NA2XSY 20,3/35 kV'),
+  '95': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.320,
+      inductanceTrefoilMhKm: 0.42,
+      outerDiameterMm: 37.2,
+      kaynak: 'Nexans NA2XSY 20,3/35 kV'),
+  '120': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.253,
+      inductanceTrefoilMhKm: 0.41,
+      outerDiameterMm: 39.0,
+      kaynak: 'Nexans NA2XSY 20,3/35 kV'),
+  '150': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.206,
+      inductanceTrefoilMhKm: 0.40,
+      outerDiameterMm: 40.0,
+      kaynak: 'Nexans NA2XSY 20,3/35 kV'),
+  '185': MerkeziOgEmpedansVerisi(
+      r20OhmKm: 0.164,
+      inductanceTrefoilMhKm: 0.38,
+      outerDiameterMm: 43.0,
+      kaynak: 'Nexans NA2XSY 20,3/35 kV'),
 };
 
 MerkeziOgEmpedansVerisi? merkeziOgEmpedansVerisi({
@@ -790,7 +1219,8 @@ double? merkeziOgDisCapMm({
   required double kesit,
   required bool al,
   required double systemVoltageV,
-}) => merkeziOgEmpedansVerisi(
+}) =>
+    merkeziOgEmpedansVerisi(
       kesit: kesit,
       al: al,
       systemVoltageV: systemVoltageV,
@@ -807,7 +1237,6 @@ double? og2035KapasiteSecimeGore({
       : (toprakta ? og2035N2xsyToprakA : og2035N2xsyHavaA);
   return table[key];
 }
-
 
 // ============================================================
 // 8A. AG MERKEZİ EMPEDANS + GEOMETRİ VERİSİ
@@ -837,67 +1266,150 @@ class MerkeziAgEmpedansVerisi {
     required this.kaynak,
   });
 
-  double get x50HzOhmKm =>
-      2 * pi * 50.0 * (inductanceMhKm / 1000.0);
+  double get x50HzOhmKm => 2 * pi * 50.0 * (inductanceMhKm / 1000.0);
 }
 
 const Map<String, double> _nayyTekDamarDisCapMm = <String, double>{
-  '10': 9.1, '16': 10.3, '25': 11.9, '35': 13.1, '50': 15.0,
-  '70': 17.1, '95': 19.2, '120': 21.0, '150': 23.5, '185': 26.0,
+  '10': 9.1,
+  '16': 10.3,
+  '25': 11.9,
+  '35': 13.1,
+  '50': 15.0,
+  '70': 17.1,
+  '95': 19.2,
+  '120': 21.0,
+  '150': 23.5,
+  '185': 26.0,
   '240': 29.0,
 };
 
 const Map<String, double> _nayyIkiDamarDisCapMm = <String, double>{
-  '10': 18.4, '16': 21.0, '25': 23.5, '35': 26.0, '50': 29.5,
-  '70': 33.0, '95': 38.0, '120': 41.0, '150': 44.0, '185': 50.5,
+  '10': 18.4,
+  '16': 21.0,
+  '25': 23.5,
+  '35': 26.0,
+  '50': 29.5,
+  '70': 33.0,
+  '95': 38.0,
+  '120': 41.0,
+  '150': 44.0,
+  '185': 50.5,
   '240': 55.5,
 };
 
 const Map<String, double> _nayyUcDamarDisCapMm = <String, double>{
-  '10': 19.4, '16': 22.5, '25': 24.5, '35': 27.5, '50': 30.0,
-  '70': 34.0, '95': 38.5, '120': 41.5, '150': 46.0, '185': 50.5,
+  '10': 19.4,
+  '16': 22.5,
+  '25': 24.5,
+  '35': 27.5,
+  '50': 30.0,
+  '70': 34.0,
+  '95': 38.5,
+  '120': 41.5,
+  '150': 46.0,
+  '185': 50.5,
   '240': 57.0,
 };
 
 const Map<String, double> _nayyDortDamarDisCapMm = <String, double>{
-  '10': 21.5, '16': 24.5, '25': 27.0, '35': 30.0, '50': 35.5,
-  '70': 39.0, '95': 44.5, '120': 48.5, '150': 54.5, '185': 59.0,
+  '10': 21.5,
+  '16': 24.5,
+  '25': 27.0,
+  '35': 30.0,
+  '50': 35.5,
+  '70': 39.0,
+  '95': 44.5,
+  '120': 48.5,
+  '150': 54.5,
+  '185': 59.0,
   '240': 66.0,
 };
 
 const Map<String, double> _nayyTekDamarInduktansMhKm = <String, double>{
-  '10': 0.350, '16': 0.323, '25': 0.313, '35': 0.298, '50': 0.290,
-  '70': 0.279, '95': 0.274, '120': 0.270, '150': 0.265, '185': 0.264,
+  '10': 0.350,
+  '16': 0.323,
+  '25': 0.313,
+  '35': 0.298,
+  '50': 0.290,
+  '70': 0.279,
+  '95': 0.274,
+  '120': 0.270,
+  '150': 0.265,
+  '185': 0.264,
   '240': 0.260,
 };
 
 const Map<String, double> _nayyIkiDamarInduktansMhKm = <String, double>{
-  '10': 0.269, '16': 0.253, '25': 0.257, '35': 0.247, '50': 0.247,
-  '70': 0.238, '95': 0.238, '120': 0.233, '150': 0.235, '185': 0.233,
+  '10': 0.269,
+  '16': 0.253,
+  '25': 0.257,
+  '35': 0.247,
+  '50': 0.247,
+  '70': 0.238,
+  '95': 0.238,
+  '120': 0.233,
+  '150': 0.235,
+  '185': 0.233,
   '240': 0.232,
 };
 
 const Map<String, double> _nayyUcDamarInduktansMhKm = <String, double>{
-  '10': 0.269, '16': 0.253, '25': 0.257, '35': 0.247, '50': 0.247,
-  '70': 0.238, '95': 0.238, '120': 0.233, '150': 0.235, '185': 0.233,
+  '10': 0.269,
+  '16': 0.253,
+  '25': 0.257,
+  '35': 0.247,
+  '50': 0.247,
+  '70': 0.238,
+  '95': 0.238,
+  '120': 0.233,
+  '150': 0.235,
+  '185': 0.233,
   '240': 0.232,
 };
 
 const Map<String, double> _nayyDortDamarInduktansMhKm = <String, double>{
-  '10': 0.269, '16': 0.253, '25': 0.257, '35': 0.247, '50': 0.247,
-  '70': 0.238, '95': 0.238, '120': 0.233, '150': 0.235, '185': 0.233,
+  '10': 0.269,
+  '16': 0.253,
+  '25': 0.257,
+  '35': 0.247,
+  '50': 0.247,
+  '70': 0.238,
+  '95': 0.238,
+  '120': 0.233,
+  '150': 0.235,
+  '185': 0.233,
   '240': 0.232,
 };
 
 const Map<String, double> _nyyRMap = <String, double>{
-  '1.5': 14.5, '2.5': 8.87, '4': 5.52, '6': 3.69, '10': 2.19,
-  '16': 1.38, '25': 0.870, '35': 0.627, '50': 0.463, '70': 0.321,
-  '95': 0.232, '120': 0.184, '150': 0.150, '185': 0.121, '240': 0.0926,
+  '1.5': 14.5,
+  '2.5': 8.87,
+  '4': 5.52,
+  '6': 3.69,
+  '10': 2.19,
+  '16': 1.38,
+  '25': 0.870,
+  '35': 0.627,
+  '50': 0.463,
+  '70': 0.321,
+  '95': 0.232,
+  '120': 0.184,
+  '150': 0.150,
+  '185': 0.121,
+  '240': 0.0926,
 };
 
 const Map<String, double> _nayyR20OhmKm = <String, double>{
-  '10': 3.08, '16': 1.91, '25': 1.20, '35': 0.868, '50': 0.641,
-  '70': 0.443, '95': 0.320, '120': 0.253, '150': 0.206, '185': 0.164,
+  '10': 3.08,
+  '16': 1.91,
+  '25': 1.20,
+  '35': 0.868,
+  '50': 0.641,
+  '70': 0.443,
+  '95': 0.320,
+  '120': 0.253,
+  '150': 0.206,
+  '185': 0.164,
   '240': 0.125,
 };
 
@@ -986,7 +1498,8 @@ MerkeziAgEmpedansVerisi? merkeziAgEmpedansVerisi({
 }
 
 double? merkeziAgDisCapMm(String secim, {required bool al}) {
-  if (al) return merkeziAgEmpedansVerisi(secim: secim, al: true)?.outerDiameterMm;
+  if (al)
+    return merkeziAgEmpedansVerisi(secim: secim, al: true)?.outerDiameterMm;
   final temel = secimTemelYapi(secim).replaceAll(' mm²', '');
   return merkeziAgEmpedansVerisi(secim: secim, al: false)?.outerDiameterMm ??
       merkeziKabloDisCapGetir('$temel mm²');
@@ -1254,43 +1767,74 @@ String? agPanoOnSecimKabloBulNYY({
 }) {
   if (!akim.isFinite || akim <= 0) return null;
 
+  // ----------------------------------------------------------
+  // AG PANO - MONOFAZE
+  // Minimum: 2x6 mm² NYY (Cu)
+  //
+  // 2 damarlı NYY merkezi KHA tablosu 10 mm² üzerinde de devam eder.
+  // Böylece 50 A üzerindeki giriş koruma değerlerinde sonuç artık
+  // boş dönmez. Örneğin 80 A için 2x16 mm² NYY seçilebilir.
+  // ----------------------------------------------------------
   if (!threePhase) {
-    // Monofaze: 2x6 mm² altına inilmez.
     const List<double> kesitler = <double>[
-      6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240,
+      6,
+      10,
+      16,
+      25,
+      35,
+      50,
+      70,
+      95,
+      120,
+      150,
+      185,
+      240,
     ];
 
     for (final double kesit in kesitler) {
-      final double? kapasite = kabloTemelHava(
-        '2x${_formatKesit(kesit)} mm²',
-      );
+      final String yapi = '2x${_formatKesit(kesit)} mm²';
+      final double? kapasite = kabloTemelHava(yapi);
       if (kapasite == null) continue;
 
       if (kapasite * duzeltme >= akim) {
-        return '2x${_formatKesit(kesit)} mm² NYY (Cu)';
+        final String bakir = '$yapi NYY (Cu)';
+        final String? al = _agPanoAluminyumMuadiliBul(
+          akim: akim,
+          threePhase: false,
+          duzeltme: duzeltme,
+        );
+        final String aluminyum = al ?? 'Merkezî NAYY kapasite verisi yetersiz';
+        return 'Bakır: $bakir\nAlüminyum muadili: $aluminyum';
       }
     }
 
     return null;
   }
 
-  // Trifaze: 4x6 mm² altına inilmez.
-  const List<double> kesitler = <double>[
-    6, 10, 16,
-  ];
+  // ----------------------------------------------------------
+  // AG PANO - TRİFAZE
+  // Minimum: 4x6 mm² NYY (Cu)
+  // ----------------------------------------------------------
+  const List<double> dortDamarKesitler = <double>[6, 10, 16];
 
-  for (final double kesit in kesitler) {
-    final double? kapasite = kabloTemelHava(
-      '4x${_formatKesit(kesit)} mm²',
-    );
+  for (final double kesit in dortDamarKesitler) {
+    final String yapi = '4x${_formatKesit(kesit)} mm²';
+    final double? kapasite = kabloTemelHava(yapi);
     if (kapasite == null) continue;
 
     if (kapasite * duzeltme >= akim) {
-      return '4x${_formatKesit(kesit)} mm² NYY (Cu)';
+      final String bakir = '$yapi NYY (Cu)';
+      final String? al = _agPanoAluminyumMuadiliBul(
+        akim: akim,
+        threePhase: true,
+        duzeltme: duzeltme,
+      );
+      final String aluminyum = al ?? 'Merkezî NAYY kapasite verisi yetersiz';
+      return 'Bakır: $bakir\nAlüminyum muadili: $aluminyum';
     }
   }
 
-  // 4x10 sonrasında mevcut 3 faz + nötr merkezî seçim mantığı kullanılır.
+  // 4x16 sonrasında mevcut 3 faz + nötr merkezî seçim mantığı kullanılır.
   const List<String> ozel = <String>[
     '3x16+10 mm²',
     '3x25+16 mm²',
@@ -1312,7 +1856,96 @@ String? agPanoOnSecimKabloBulNYY({
     if (kapasite == null) continue;
 
     if (kapasite * duzeltme >= akim) {
-      return '$secim NYY (Cu)';
+      final String bakir = '$secim NYY (Cu)';
+      final String? al = _agPanoAluminyumMuadiliBul(
+        akim: akim,
+        threePhase: true,
+        duzeltme: duzeltme,
+      );
+      final String aluminyum = al ?? 'Merkezî NAYY kapasite verisi yetersiz';
+      return 'Bakır: $bakir\nAlüminyum muadili: $aluminyum';
+    }
+  }
+
+  return null;
+}
+
+// AG Pano sonuçlarında iletken tipi seçimi bulunmadığı için,
+// aynı sonuç kartında bakır seçimin karşısına akımı karşılayan
+// en küçük NAYY (Al) muadili gösterilir.
+String? _agPanoAluminyumMuadiliBul({
+  required double akim,
+  required bool threePhase,
+  double duzeltme = 1.0,
+}) {
+  if (!akim.isFinite || akim <= 0) return null;
+
+  final List<double> kesitler = <double>[
+    10,
+    16,
+    25,
+    35,
+    50,
+    70,
+    95,
+    120,
+    150,
+    185,
+    240,
+  ];
+
+  if (!threePhase) {
+    for (final double kesit in kesitler) {
+      final String yapi = '2x${_formatKesit(kesit)} mm²';
+      final double? kapasite = nayyKapasiteSecimeGore(
+        yapi,
+        toprakta: false,
+      );
+      if (kapasite == null) continue;
+
+      if (kapasite * duzeltme >= akim) {
+        return '$yapi NAYY (Al)';
+      }
+    }
+    return null;
+  }
+
+  for (final double kesit in kesitler) {
+    final String yapi = '4x${_formatKesit(kesit)} mm²';
+    final double? kapasite = nayyKapasiteSecimeGore(
+      yapi,
+      toprakta: false,
+    );
+    if (kapasite == null) continue;
+
+    if (kapasite * duzeltme >= akim) {
+      return '$yapi NAYY (Al)';
+    }
+  }
+
+  // Trifaze 4x240 NAYY sonrasında mevcut NAYY 3+N veri setine geçilir.
+  const List<String> ozel = <String>[
+    '3x16+10 mm²',
+    '3x25+16 mm²',
+    '3x35+16 mm²',
+    '3x50+25 mm²',
+    '3x70+35 mm²',
+    '3x95+50 mm²',
+    '3x120+70 mm²',
+    '3x150+70 mm²',
+    '3x185+95 mm²',
+    '3x240+120 mm²',
+  ];
+
+  for (final String yapi in ozel) {
+    final double? kapasite = nayyKapasiteSecimeGore(
+      yapi,
+      toprakta: false,
+    );
+    if (kapasite == null) continue;
+
+    if (kapasite * duzeltme >= akim) {
+      return '$yapi NAYY (Al)';
     }
   }
 
@@ -1449,19 +2082,56 @@ String? nayyTeknikUygunKesitBul({
 
   final List<String> adaylar = threePhase
       ? <String>[
-          '4x1,5 mm²', '4x2,5 mm²', '4x4 mm²', '4x6 mm²', '4x10 mm²',
-          '3x16+10 mm²', '3x25+16 mm²', '3x35+16 mm²', '3x50+25 mm²',
-          '3x70+35 mm²', '3x95+50 mm²', '3x120+70 mm²', '3x150+70 mm²',
-          '3x185+95 mm²', '3x240+120 mm²',
+          '4x1,5 mm²',
+          '4x2,5 mm²',
+          '4x4 mm²',
+          '4x6 mm²',
+          '4x10 mm²',
+          '3x16+10 mm²',
+          '3x25+16 mm²',
+          '3x35+16 mm²',
+          '3x50+25 mm²',
+          '3x70+35 mm²',
+          '3x95+50 mm²',
+          '3x120+70 mm²',
+          '3x150+70 mm²',
+          '3x185+95 mm²',
+          '3x240+120 mm²',
         ]
       : <String>[
-          '1x10 mm²', '1x16 mm²', '1x25 mm²', '1x35 mm²', '1x50 mm²',
-          '1x70 mm²', '1x95 mm²', '1x120 mm²', '1x150 mm²', '1x185 mm²',
-          '1x240 mm²', '2x10 mm²', '2x16 mm²', '2x25 mm²', '2x35 mm²',
-          '2x50 mm²', '2x70 mm²', '2x95 mm²', '2x120 mm²', '2x150 mm²',
-          '2x185 mm²', '2x240 mm²', '3x10 mm²', '3x16 mm²', '3x25 mm²',
-          '3x35 mm²', '3x50 mm²', '3x70 mm²', '3x95 mm²', '3x120 mm²',
-          '3x150 mm²', '3x185 mm²', '3x240 mm²',
+          '1x10 mm²',
+          '1x16 mm²',
+          '1x25 mm²',
+          '1x35 mm²',
+          '1x50 mm²',
+          '1x70 mm²',
+          '1x95 mm²',
+          '1x120 mm²',
+          '1x150 mm²',
+          '1x185 mm²',
+          '1x240 mm²',
+          '2x10 mm²',
+          '2x16 mm²',
+          '2x25 mm²',
+          '2x35 mm²',
+          '2x50 mm²',
+          '2x70 mm²',
+          '2x95 mm²',
+          '2x120 mm²',
+          '2x150 mm²',
+          '2x185 mm²',
+          '2x240 mm²',
+          '3x10 mm²',
+          '3x16 mm²',
+          '3x25 mm²',
+          '3x35 mm²',
+          '3x50 mm²',
+          '3x70 mm²',
+          '3x95 mm²',
+          '3x120 mm²',
+          '3x150 mm²',
+          '3x185 mm²',
+          '3x240 mm²',
         ];
 
   for (final String secim in adaylar) {
@@ -1596,7 +2266,6 @@ const String teknikKaynakNotu =
 // DOSYA SONU
 // ============================================================
 
-
 // ============================================================
 // FAZ 4 — YERALTI / ALPEK / AÇIK İLETKEN MERKEZİ VERİ KATMANI
 // ============================================================
@@ -1667,27 +2336,78 @@ class MerkeziAcikIletkenElektrikVerisi {
   });
 }
 
-const List<MerkeziAcikIletkenElektrikVerisi> merkeziAgAcikIletkenElektrik = <MerkeziAcikIletkenElektrikVerisi>[
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Rose', rOhmKm: 1.354, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Lily', rOhmKm: 1.074, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Pansy', rOhmKm: 0.6752, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Poppy', rOhmKm: 0.5351, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Aster', rOhmKm: 0.4245, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Phlox', rOhmKm: 0.3366, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Oxlip', rOhmKm: 0.2671, xOhmKm: null, kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+const List<MerkeziAcikIletkenElektrikVerisi> merkeziAgAcikIletkenElektrik =
+    <MerkeziAcikIletkenElektrikVerisi>[
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Rose',
+      rOhmKm: 1.354,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Lily',
+      rOhmKm: 1.074,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Pansy',
+      rOhmKm: 0.6752,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Poppy',
+      rOhmKm: 0.5351,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Aster',
+      rOhmKm: 0.4245,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Phlox',
+      rOhmKm: 0.3366,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Oxlip',
+      rOhmKm: 0.2671,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA AG açık iletken R referansı'),
 ];
 
-const List<MerkeziAcikIletkenElektrikVerisi> merkeziOgAcikIletkenElektrik = <MerkeziAcikIletkenElektrikVerisi>[
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Swallow', rOhmKm: 1.0742, xOhmKm: null, kaynak: 'Mevcut ESA OG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Raven', rOhmKm: 0.5362, xOhmKm: null, kaynak: 'Mevcut ESA OG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Pigeon', rOhmKm: 0.3366, xOhmKm: null, kaynak: 'Mevcut ESA OG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Partridge', rOhmKm: 0.214, xOhmKm: null, kaynak: 'Mevcut ESA OG açık iletken R referansı'),
-  MerkeziAcikIletkenElektrikVerisi(ad: 'Hawk', rOhmKm: 0.1194, xOhmKm: null, kaynak: 'Mevcut ESA OG açık iletken R referansı'),
+const List<MerkeziAcikIletkenElektrikVerisi> merkeziOgAcikIletkenElektrik =
+    <MerkeziAcikIletkenElektrikVerisi>[
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Swallow',
+      rOhmKm: 1.0742,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA OG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Raven',
+      rOhmKm: 0.5362,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA OG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Pigeon',
+      rOhmKm: 0.3366,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA OG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Partridge',
+      rOhmKm: 0.214,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA OG açık iletken R referansı'),
+  MerkeziAcikIletkenElektrikVerisi(
+      ad: 'Hawk',
+      rOhmKm: 0.1194,
+      xOhmKm: null,
+      kaynak: 'Mevcut ESA OG açık iletken R referansı'),
 ];
 
 double? merkeziAcikIletkenROhmKm(String secim, {required bool og}) {
   final hedef = secim.trim().toLowerCase();
-  final liste = og ? merkeziOgAcikIletkenElektrik : merkeziAgAcikIletkenElektrik;
+  final liste =
+      og ? merkeziOgAcikIletkenElektrik : merkeziAgAcikIletkenElektrik;
   for (final v in liste) {
     if (v.ad.toLowerCase() == hedef) return v.rOhmKm;
   }
@@ -1709,49 +2429,194 @@ class MerkeziAcikIletken {
 }
 
 const List<MerkeziAlpekSecenek> merkeziAlpekMonofaze = <MerkeziAlpekSecenek>[
-  MerkeziAlpekSecenek(fazKesitiMm2: 16, notrKesitiMm2: 16, fazDamari: 1, notrDamari: 1, kapasiteA: 63),
-  MerkeziAlpekSecenek(fazKesitiMm2: 25, notrKesitiMm2: 25, fazDamari: 1, notrDamari: 1, kapasiteA: 80),
-  MerkeziAlpekSecenek(fazKesitiMm2: 35, notrKesitiMm2: 35, fazDamari: 1, notrDamari: 1, kapasiteA: 100),
-  MerkeziAlpekSecenek(fazKesitiMm2: 50, notrKesitiMm2: 50, fazDamari: 1, notrDamari: 1, kapasiteA: 125),
-  MerkeziAlpekSecenek(fazKesitiMm2: 70, notrKesitiMm2: 70, fazDamari: 1, notrDamari: 1, kapasiteA: 160),
-  MerkeziAlpekSecenek(fazKesitiMm2: 95, notrKesitiMm2: 95, fazDamari: 1, notrDamari: 1, kapasiteA: 195),
-  MerkeziAlpekSecenek(fazKesitiMm2: 120, notrKesitiMm2: 120, fazDamari: 1, notrDamari: 1, kapasiteA: 225),
-  MerkeziAlpekSecenek(fazKesitiMm2: 150, notrKesitiMm2: 150, fazDamari: 1, notrDamari: 1, kapasiteA: 260),
-  MerkeziAlpekSecenek(fazKesitiMm2: 185, notrKesitiMm2: 185, fazDamari: 1, notrDamari: 1, kapasiteA: 300),
-  MerkeziAlpekSecenek(fazKesitiMm2: 240, notrKesitiMm2: 240, fazDamari: 1, notrDamari: 1, kapasiteA: 345),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 16,
+      notrKesitiMm2: 16,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 63),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 25,
+      notrKesitiMm2: 25,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 80),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 35,
+      notrKesitiMm2: 35,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 100),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 50,
+      notrKesitiMm2: 50,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 125),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 70,
+      notrKesitiMm2: 70,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 160),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 95,
+      notrKesitiMm2: 95,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 195),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 120,
+      notrKesitiMm2: 120,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 225),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 150,
+      notrKesitiMm2: 150,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 260),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 185,
+      notrKesitiMm2: 185,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 300),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 240,
+      notrKesitiMm2: 240,
+      fazDamari: 1,
+      notrDamari: 1,
+      kapasiteA: 345),
 ];
 
 const List<MerkeziAlpekSecenek> merkeziAlpekTrifaze = <MerkeziAlpekSecenek>[
-  MerkeziAlpekSecenek(fazKesitiMm2: 16, notrKesitiMm2: 16, fazDamari: 3, notrDamari: 1, kapasiteA: 50),
-  MerkeziAlpekSecenek(fazKesitiMm2: 25, notrKesitiMm2: 25, fazDamari: 3, notrDamari: 1, kapasiteA: 63),
-  MerkeziAlpekSecenek(fazKesitiMm2: 35, notrKesitiMm2: 35, fazDamari: 3, notrDamari: 1, kapasiteA: 80),
-  MerkeziAlpekSecenek(fazKesitiMm2: 50, notrKesitiMm2: 50, fazDamari: 3, notrDamari: 1, kapasiteA: 100),
-  MerkeziAlpekSecenek(fazKesitiMm2: 70, notrKesitiMm2: 70, fazDamari: 3, notrDamari: 1, kapasiteA: 125),
-  MerkeziAlpekSecenek(fazKesitiMm2: 95, notrKesitiMm2: 95, fazDamari: 3, notrDamari: 1, kapasiteA: 160),
-  MerkeziAlpekSecenek(fazKesitiMm2: 120, notrKesitiMm2: 120, fazDamari: 3, notrDamari: 1, kapasiteA: 195),
-  MerkeziAlpekSecenek(fazKesitiMm2: 150, notrKesitiMm2: 150, fazDamari: 3, notrDamari: 1, kapasiteA: 225),
-  MerkeziAlpekSecenek(fazKesitiMm2: 185, notrKesitiMm2: 185, fazDamari: 3, notrDamari: 1, kapasiteA: 265),
-  MerkeziAlpekSecenek(fazKesitiMm2: 240, notrKesitiMm2: 240, fazDamari: 3, notrDamari: 1, kapasiteA: 305),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 16,
+      notrKesitiMm2: 16,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 50),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 25,
+      notrKesitiMm2: 25,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 63),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 35,
+      notrKesitiMm2: 35,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 80),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 50,
+      notrKesitiMm2: 50,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 100),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 70,
+      notrKesitiMm2: 70,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 125),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 95,
+      notrKesitiMm2: 95,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 160),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 120,
+      notrKesitiMm2: 120,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 195),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 150,
+      notrKesitiMm2: 150,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 225),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 185,
+      notrKesitiMm2: 185,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 265),
+  MerkeziAlpekSecenek(
+      fazKesitiMm2: 240,
+      notrKesitiMm2: 240,
+      fazDamari: 3,
+      notrDamari: 1,
+      kapasiteA: 305),
 ];
 
 const List<MerkeziAcikIletken> merkeziAgAcikIletkenler = <MerkeziAcikIletken>[
-  MerkeziAcikIletken(ad: 'Rose', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 21.1, kapasiteA: 85),
-  MerkeziAcikIletken(ad: 'Lily', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 26.6, kapasiteA: 110),
-  MerkeziAcikIletken(ad: 'Pansy', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 42.4, kapasiteA: 135),
-  MerkeziAcikIletken(ad: 'Poppy', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 53.5, kapasiteA: 170),
-  MerkeziAcikIletken(ad: 'Aster', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 67.4, kapasiteA: 210),
-  MerkeziAcikIletken(ad: 'Phlox', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 85, kapasiteA: 250),
-  MerkeziAcikIletken(ad: 'Oxlip', tipAciklama: 'Tam Alüminyum İletken', kesitMm2: 107.2, kapasiteA: 290),
+  MerkeziAcikIletken(
+      ad: 'Rose',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 21.1,
+      kapasiteA: 85),
+  MerkeziAcikIletken(
+      ad: 'Lily',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 26.6,
+      kapasiteA: 110),
+  MerkeziAcikIletken(
+      ad: 'Pansy',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 42.4,
+      kapasiteA: 135),
+  MerkeziAcikIletken(
+      ad: 'Poppy',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 53.5,
+      kapasiteA: 170),
+  MerkeziAcikIletken(
+      ad: 'Aster',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 67.4,
+      kapasiteA: 210),
+  MerkeziAcikIletken(
+      ad: 'Phlox',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 85,
+      kapasiteA: 250),
+  MerkeziAcikIletken(
+      ad: 'Oxlip',
+      tipAciklama: 'Tam Alüminyum İletken',
+      kesitMm2: 107.2,
+      kapasiteA: 290),
 ];
 
 const List<MerkeziAcikIletken> merkeziOgAcikIletkenler = <MerkeziAcikIletken>[
-  MerkeziAcikIletken(ad: 'Swallow', tipAciklama: 'Çelik Özlü Alüminyum İletken', kesitMm2: 31.1, kapasiteA: 135),
-  MerkeziAcikIletken(ad: 'Pigeon', tipAciklama: 'Çelik Özlü Alüminyum İletken', kesitMm2: 99.3, kapasiteA: 250),
-  MerkeziAcikIletken(ad: 'Partridge', tipAciklama: 'Çelik Özlü Alüminyum İletken', kesitMm2: 156.9, kapasiteA: 330),
-  MerkeziAcikIletken(ad: 'Hawk', tipAciklama: 'Çelik Özlü Alüminyum İletken', kesitMm2: 281.1, kapasiteA: 490),
+  MerkeziAcikIletken(
+      ad: 'Swallow',
+      tipAciklama: 'Çelik Özlü Alüminyum İletken',
+      kesitMm2: 31.1,
+      kapasiteA: 135),
+  MerkeziAcikIletken(
+      ad: 'Pigeon',
+      tipAciklama: 'Çelik Özlü Alüminyum İletken',
+      kesitMm2: 99.3,
+      kapasiteA: 250),
+  MerkeziAcikIletken(
+      ad: 'Partridge',
+      tipAciklama: 'Çelik Özlü Alüminyum İletken',
+      kesitMm2: 156.9,
+      kapasiteA: 330),
+  MerkeziAcikIletken(
+      ad: 'Hawk',
+      tipAciklama: 'Çelik Özlü Alüminyum İletken',
+      kesitMm2: 281.1,
+      kapasiteA: 490),
 ];
 
-List<MerkeziYeraltiKablo> merkeziYeraltiAgSecim({required String faz, required String malzeme}) {
+List<MerkeziYeraltiKablo> merkeziYeraltiAgSecim(
+    {required String faz, required String malzeme}) {
   final bool monofaze = faz.trim().toLowerCase() == 'monofaze';
   final bool al = malzeme.trim().toLowerCase().contains('alüminyum');
   final List<MerkeziYeraltiKablo> result = <MerkeziYeraltiKablo>[];
@@ -1775,7 +2640,8 @@ List<MerkeziYeraltiKablo> merkeziYeraltiAgSecim({required String faz, required S
   return result;
 }
 
-List<MerkeziYeraltiKablo> merkeziYeraltiAgFazSecenekleri({required String malzeme}) {
+List<MerkeziYeraltiKablo> merkeziYeraltiAgFazSecenekleri(
+    {required String malzeme}) {
   final List<MerkeziYeraltiKablo> result = <MerkeziYeraltiKablo>[];
   final bool al = malzeme.trim().toLowerCase().contains('alüminyum');
 
@@ -1801,3 +2667,222 @@ List<MerkeziYeraltiKablo> merkeziYeraltiAgFazSecenekleri({required String malzem
 
 String merkeziKabloGosterim({required String yapi, required double kesitMm2}) =>
     '$yapi${_formatKesit(kesitMm2)} mm²';
+
+
+// ============================================================
+// 23. DETAYLI DIŞ ÇAP ÇÖZÜMLEYİCİ
+// ============================================================
+//
+// Kullanım amacı:
+//   Boru/Tava Doluluk
+//   Makarada Kalan Kablo
+//
+// Bu fonksiyon kablo dış çapını gerilim + iletken + kablo yapısına
+// göre merkezi veri katmanından çözer.
+//
+// AG:
+//   Bakır      -> NYY
+//   Alüminyum  -> NAYY
+//
+// OG:
+//   Bakır      -> N2XSY
+//   Alüminyum  -> NA2XSY
+//
+// Paralel yapı:
+//   2x(3x95+50) mm² -> tek kablonun dış çapı
+//   Paralel adet geometrik hesapta ayrıca değerlendirilir.
+//
+// ============================================================
+
+String _detayliDisCapTemelYapi(String secim) {
+  String s = secim.trim()
+      .replaceAll('×', 'x')
+      .replaceAll('\u00A0', ' ');
+
+  s = s.replaceAll(
+    RegExp(r'\s*\((?:Cu|Al)\)\s*$', caseSensitive: false),
+    '',
+  );
+
+  s = s.replaceAll(
+    RegExp(
+      r'\s+(?:NYY|NAYY|N2XSY|NA2XSY)\s*$',
+      caseSensitive: false,
+    ),
+    '',
+  );
+
+  s = s.replaceAll('mm2', 'mm²');
+  s = s.replaceAll('MM²', 'mm²');
+  s = s.replaceAll(' ', '');
+
+  if (s.endsWith('mm²')) {
+    s = s.substring(0, s.length - 3);
+  }
+
+  // Paralel kablo grubunda dış çap tek kabloya aittir.
+  final RegExpMatch? parallel = RegExp(r'^\d+x\((.+)\)$').firstMatch(s);
+  if (parallel != null) {
+    s = parallel.group(1) ?? s;
+  }
+
+  // 3x240+1x120 ve 3x240+120 aynı merkezî anahtara indirgenir.
+  s = s.replaceAll(RegExp(r'\+1x'), '+');
+
+  return s;
+}
+
+double? _detayliDisCapKesit(String temel) {
+  final RegExpMatch? match = RegExp(
+    r'^(?:1|2|3|4)x(\d+(?:[.,]\d+)?)',
+  ).firstMatch(temel);
+
+  if (match == null) {
+    return null;
+  }
+
+  return double.tryParse(
+    (match.group(1) ?? '').replaceAll(',', '.'),
+  );
+}
+
+String _detayliDisCapDamarYapisi(String temel) {
+  if (temel.contains('+')) {
+    return '3n';
+  }
+
+  final RegExpMatch? match = RegExp(r'^(1|2|3|4)x').firstMatch(temel);
+  return match?.group(1) ?? '';
+}
+
+bool _detayliAluminyumMu(String iletken) {
+  final String s = iletken.trim().toLowerCase();
+
+  return s.contains('alüminyum') ||
+      s.contains('aluminyum') ||
+      s == 'al' ||
+      s.contains('nayy') ||
+      s.contains('na2xsy');
+}
+
+double? _detayliAgNyyDisCap(String temel) {
+  final String key = '$temel mm²';
+
+  // Önce üretici referanslı genişletilmiş tablo.
+  final double? genis = _merkeziNyyDisCapGenis[key];
+  if (genis != null && genis > 0) {
+    return genis;
+  }
+
+  // Sonra mevcut ESA merkezî tablo.
+  final double? mevcut = merkeziKabloDisCapMm[key];
+  if (mevcut != null && mevcut > 0) {
+    return mevcut;
+  }
+
+  return null;
+}
+
+double? _detayliAgNayyDisCap(String temel) {
+  final double? kesit = _detayliDisCapKesit(temel);
+  if (kesit == null || kesit <= 0) {
+    return null;
+  }
+
+  final String key = _kesitAnahtari(kesit);
+  final String yapi = _detayliDisCapDamarYapisi(temel);
+
+  switch (yapi) {
+    case '1':
+      return _nayyTekDamarDisCapMm[key];
+
+    case '2':
+      return _nayyIkiDamarDisCapMm[key];
+
+    case '3':
+      return _nayyUcDamarDisCapMm[key];
+
+    case '4':
+      return _nayyDortDamarDisCapMm[key];
+
+    case '3n':
+      // 3+N yapısı için merkezî tabloda doğrulanmış değer varsa kullan.
+      // Mevcut tablo anahtarı doğrudan aranır.
+      return merkeziKabloDisCapMm['$temel mm²'];
+
+    default:
+      return null;
+  }
+}
+
+/// AG dış çapı:
+/// Bakır -> NYY
+/// Alüminyum -> NAYY
+double? merkeziAgDisCapMmDetayli(
+  String secim, {
+  required String iletken,
+}) {
+  final String temel = _detayliDisCapTemelYapi(secim);
+
+  if (_detayliAluminyumMu(iletken)) {
+    return _detayliAgNayyDisCap(temel);
+  }
+
+  return _detayliAgNyyDisCap(temel);
+}
+
+/// OG dış çapı:
+/// Bakır -> N2XSY
+/// Alüminyum -> NA2XSY
+///
+/// systemVoltageV verilmezse ESA'nın mevcut OG veri modelindeki
+/// 20 kV sınıfı varsayılanı kullanılır.
+double? merkeziOgDisCapMmDetayli({
+  required String secim,
+  required String iletken,
+  double systemVoltageV = 20000.0,
+}) {
+  final String temel = _detayliDisCapTemelYapi(secim);
+  final double? kesit = _detayliDisCapKesit(temel);
+
+  if (kesit == null || kesit <= 0) {
+    return null;
+  }
+
+  final bool al = _detayliAluminyumMu(iletken);
+
+  return merkeziOgDisCapMm(
+    kesit: kesit,
+    al: al,
+    systemVoltageV: systemVoltageV,
+  );
+}
+
+/// Boru/Tava ve Makara gibi araçların kullanacağı tek giriş noktası.
+///
+/// gerilim:
+///   AG / OG
+///
+/// iletken:
+///   Bakır / Alüminyum
+double? merkeziKabloDisCapGetirDetayli(
+  String secim, {
+  required String gerilim,
+  required String iletken,
+  double systemVoltageV = 20000.0,
+}) {
+  final String g = gerilim.trim().toUpperCase();
+
+  if (g == 'OG' || g.contains('ORTA')) {
+    return merkeziOgDisCapMmDetayli(
+      secim: secim,
+      iletken: iletken,
+      systemVoltageV: systemVoltageV,
+    );
+  }
+
+  return merkeziAgDisCapMmDetayli(
+    secim,
+    iletken: iletken,
+  );
+}
