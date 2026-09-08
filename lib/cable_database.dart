@@ -600,7 +600,7 @@ double? nayyKapasiteSecimeGore(String secim, {required bool toprakta}) {
 // OG XLPE KABLO KHA — MERKEZİ VERİ KAYNAĞI
 //
 // Faz 24: Hat Analizi içindeki OG yerel tabloları buraya taşındı.
-// Değerler mevcut 2.4.4 çalışma tabanındaki OG teknik kapasite
+// Değerler mevcut 2.4.5 çalışma tabanındaki OG teknik kapasite
 // noktalarının aynen merkezileştirilmiş halidir. Üretici/şartname
 // bazlı nihai doğrulama ayrıca yapılmalıdır; bu aşamada değerler
 // değiştirilmemiş, yalnızca tek kaynağa alınmıştır.
@@ -1115,7 +1115,7 @@ String? nyyTeknikUygunKesitBul({
       final double duzeltilmis = kapasite * duzeltme;
 
       if (duzeltilmis >= akim) {
-        return '${_formatKesit(kesit)}x2 mm² NYY (Cu)';
+        return '2x${_formatKesit(kesit)} mm² NYY (Cu)';
       }
     }
 
@@ -1224,6 +1224,95 @@ String? nyyTeknikUygunKesitBul({
       if (toplam >= akim) {
         return '${paralel}x(${secim.replaceAll(' mm²', '')}) mm²';
       }
+    }
+  }
+
+  return null;
+}
+
+// ============================================================
+// 11A. AG PANO MALZEME SEÇİMİ — ÖZEL KABLO ÖN SEÇİMİ
+// ============================================================
+//
+// Bu fonksiyon yalnızca AG Pano Malzeme Seçimi aracında kullanılır.
+// Diğer araçların minimum kesit kuralları bu fonksiyondan etkilenmez.
+//
+// AG Pano özel minimumları:
+//   Monofaze : 2x6 mm² NYY (Cu)
+//   Trifaze  : 4x6 mm² NYY (Cu)
+//
+// Kablo seçimi, giriş koruma/TMŞ akımı için merkezî NYY KHA
+// verisini kullanır. Uygun kapasite bulunamazsa null yerine,
+// AG Pano için tanımlı minimumdan başlayarak standart kesitler
+// üzerinden tekrar değerlendirme yapılır.
+// ============================================================
+
+String? agPanoOnSecimKabloBulNYY({
+  required double akim,
+  required bool threePhase,
+  double duzeltme = 1.0,
+}) {
+  if (!akim.isFinite || akim <= 0) return null;
+
+  if (!threePhase) {
+    // Monofaze: 2x6 mm² altına inilmez.
+    const List<double> kesitler = <double>[
+      6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240,
+    ];
+
+    for (final double kesit in kesitler) {
+      final double? kapasite = kabloTemelHava(
+        '2x${_formatKesit(kesit)} mm²',
+      );
+      if (kapasite == null) continue;
+
+      if (kapasite * duzeltme >= akim) {
+        return '2x${_formatKesit(kesit)} mm² NYY (Cu)';
+      }
+    }
+
+    return null;
+  }
+
+  // Trifaze: 4x6 mm² altına inilmez.
+  const List<double> kesitler = <double>[
+    6, 10, 16,
+  ];
+
+  for (final double kesit in kesitler) {
+    final double? kapasite = kabloTemelHava(
+      '4x${_formatKesit(kesit)} mm²',
+    );
+    if (kapasite == null) continue;
+
+    if (kapasite * duzeltme >= akim) {
+      return '4x${_formatKesit(kesit)} mm² NYY (Cu)';
+    }
+  }
+
+  // 4x10 sonrasında mevcut 3 faz + nötr merkezî seçim mantığı kullanılır.
+  const List<String> ozel = <String>[
+    '3x16+10 mm²',
+    '3x25+16 mm²',
+    '3x35+16 mm²',
+    '3x50+25 mm²',
+    '3x70+35 mm²',
+    '3x95+50 mm²',
+    '3x120+70 mm²',
+    '3x150+70 mm²',
+    '3x185+95 mm²',
+    '3x240+120 mm²',
+  ];
+
+  for (final String secim in ozel) {
+    final double? kapasite = nyyKapasiteSecimeGore(
+      secim,
+      toprakta: false,
+    );
+    if (kapasite == null) continue;
+
+    if (kapasite * duzeltme >= akim) {
+      return '$secim NYY (Cu)';
     }
   }
 

@@ -84,7 +84,11 @@ class _AnaPanoSecimiEkraniState extends State<AnaPanoSecimiEkrani> {
     int inFuse = standartlar[outIndex < standartlar.length - 1 ? outIndex + 1 : outIndex];
     if (inFuse < 25) inFuse = 25;
 
-    String k = standartKabloBulNYY(inFuse.toDouble(), gerilimTipi == 'Trifaze'); 
+    String k = agPanoOnSecimKabloBulNYY(
+      akim: inFuse.toDouble(),
+      threePhase: gerilimTipi == 'Trifaze',
+      duzeltme: esaTechnicalSelectionCorrectionFactor,
+    ) ?? '-'; 
     String aT = p > 320 ? '${standartAkimTrafosuBul(min(i, 5000).toDouble())} — OG den ölçü / x/5 sayaç' : aboneGrubu == 'Mesken' ? (p <= 30 ? 'AG den ölçüm — direkt bağlı aktif sayaç' : '${standartAkimTrafosuBul(min(i, 5000).toDouble())} — AG den ölçüm / x/5 sayaç') : (p <= 9 ? 'AG den ölçüm — direkt bağlı aktif sayaç' : p <= 30 ? 'AG den ölçüm — kombi sayaç' : '${standartAkimTrafosuBul(min(i, 5000).toDouble())} — AG den ölçüm / x/5 sayaç');
     String b = inFuse > 1600 ? 'Kayar Bara' : standartBaraBul(inFuse.toDouble());
     

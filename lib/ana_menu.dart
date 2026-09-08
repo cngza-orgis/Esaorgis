@@ -79,7 +79,7 @@ void _hakkindaPopup(BuildContext context) {
             'hesaplamalar sahada uygulanabilirlik anlamına gelmez.\n\n'
             'Tüm araçlar çevrimdışı çalışır; internet bağlantısı veya kullanıcı '
             'izni gerektirmez.\n\n'
-            'Sürüm 2.4.4\n\n' +
+            'Sürüm 2.4.5\n\n' +
         teknikKaynakNotu,
   );
 }
@@ -507,7 +507,7 @@ class _AnaMenuState extends State<AnaMenu> {
                     height: 2,
                   ),
                   Text(
-                    'Sürüm 2.4.4',
+                    'Sürüm 2.4.5',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
