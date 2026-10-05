@@ -1,0 +1,39 @@
+workflows:
+  ios-release:
+    name: ESA iOS Release 2.4.5 (245)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: ESA_APPSTORE_CONNECT
+
+    environment:
+      flutter: stable
+      xcode: 26.6
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.orgis.esa
+
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        script: pod install --project-directory=ios
+
+      - name: Apply iOS code signing profiles
+        script: xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: flutter build ipa --release --build-name=2.4.5 --build-number=245
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false
