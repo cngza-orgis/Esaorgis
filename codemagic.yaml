@@ -16,8 +16,11 @@ workflows:
         bundle_identifier: com.orgis.esa
 
     scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
+      - name: Regenerate Flutter iOS configuration
+        script: |
+          rm -f ios/Flutter/Generated.xcconfig
+          rm -f ios/Flutter/flutter_export_environment.sh
+          flutter pub get
 
       - name: Install CocoaPods dependencies
         script: pod install --project-directory=ios
