@@ -28,8 +28,12 @@ workflows:
       - name: Apply iOS code signing profiles
         script: xcode-project use-profiles
 
-      - name: Build signed IPA
-        script: flutter build ipa --release --build-name=2.4.5 --build-number=245
+     - name: Build signed IPA
+  script: |
+    flutter build ipa --release \
+      --build-name=2.4.5 \
+      --build-number=245 \
+      --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
